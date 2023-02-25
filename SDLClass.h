@@ -83,7 +83,7 @@ public:
 using IntPair = XYPair<int>;
 using DoublePair = XYPair<long double>;
 
-class Rect : SDL_Rect {
+class Rect : public SDL_Rect {
 protected:
     using PairRef = IntPair::PairRef;
 public:
@@ -273,6 +273,22 @@ public:
     void copy(Rect a_dstrect) {
         Texture texture = surface;
         texture.copy(a_dstrect);
+    }
+
+    void blit(Surface &a_surface, const Rect &srcrect = {}, Rect dstrect = {}) {
+        SDL_BlitSurface(a_surface, srcrect, surface, &dstrect);
+    }
+
+    void set_color_key(const Color &color, int flag = SDL_TRUE) {
+        SDL_SetColorKey(surface, flag, get_color(color));
+    }
+
+    void set_alpha(Uint8 alpha) {
+        SDL_SetSurfaceAlphaMod(surface, alpha);
+    }
+
+    void set_blend(SDL_BlendMode blendMode) {
+        SDL_SetSurfaceBlendMode(surface, blendMode);
     }
 
     Uint32 get_color(const Color &color) {
