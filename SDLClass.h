@@ -19,8 +19,8 @@ using Color = SDL_Color;
 using TexturePtr = SDL_Texture *;
 using SurfacePtr = SDL_Surface *;
 
-Renderer renderer;
-Window window;
+extern Renderer renderer;
+extern Window window;
 
 template<class XYType>
 class XYPair {
