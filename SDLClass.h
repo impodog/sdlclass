@@ -163,7 +163,7 @@ public:
         return expand(1 / m, center());
     }
 
-    operator const SDL_Rect *() { // NOLINT(google-explicit-constructor)
+    constexpr operator const SDL_Rect *() const { // NOLINT(google-explicit-constructor)
         return null ? nullptr : this;
     }
 };
@@ -251,6 +251,14 @@ public:
     void copy(Rect a_dstrect) {
         Texture texture = surface;
         texture.copy(a_dstrect);
+    }
+
+    Uint32 get_color(const Color &color) {
+        return SDL_MapRGB(surface->format, color.r, color.g, color.b);
+    }
+
+    void fill_rect(const Color &color, const Rect &rect = {}) {
+        SDL_FillRect(surface, rect, get_color(color));
     }
 
     operator SurfacePtr() { // NOLINT(google-explicit-constructor)
