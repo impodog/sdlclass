@@ -108,6 +108,7 @@ public:
         w = rect.w;
         h = rect.h;
         null = rect.null;
+        return *this;
     }
 
     [[nodiscard]] IntPair center() const {
@@ -321,19 +322,19 @@ public:
     Font &operator=(const Font &) = delete;
 
     Surface render(const std::string &text, const Color &color) {
-        TTF_RenderUTF8_Blended(font, text.c_str(), color);
+        return TTF_RenderUTF8_Blended(font, text.c_str(), color);
     }
 
     Surface render_wrapped(const std::string &text, const Color &color, Uint32 wrapLength = 0) {
-        TTF_RenderUTF8_Blended_Wrapped(font, text.c_str(), color, wrapLength);
+        return TTF_RenderUTF8_Blended_Wrapped(font, text.c_str(), color, wrapLength);
     }
 
     Surface render_solid(const std::string &text, const Color &color) {
-        TTF_RenderUTF8_Solid(font, text.c_str(), color);
+        return TTF_RenderUTF8_Solid(font, text.c_str(), color);
     }
 
     Surface render_solid_wrapped(const std::string &text, const Color &color, Uint32 wrapLength = 0) {
-        TTF_RenderUTF8_Solid_Wrapped(font, text.c_str(), color, wrapLength);
+        return TTF_RenderUTF8_Solid_Wrapped(font, text.c_str(), color, wrapLength);
     }
 };
 
