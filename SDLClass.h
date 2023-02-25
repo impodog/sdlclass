@@ -175,6 +175,11 @@ protected:
 public:
     Rect srcrect;
 
+    Texture() noexcept {
+        texture = nullptr;
+        independent = false;
+    }
+
     Texture(const Texture &a_texture) noexcept {
         texture = a_texture.texture;
         srcrect = a_texture.srcrect;
@@ -193,6 +198,12 @@ public:
     }
 
     Texture &operator=(const Texture &) = delete;
+
+    Texture &operator=(Texture &&a_surface) noexcept {
+        texture = a_surface.texture;
+        independent = a_surface.independent;
+        return *this;
+    }
 
     ~Texture() {
         if (independent) SDL_DestroyTexture(texture);
@@ -216,6 +227,11 @@ protected:
     SurfacePtr surface;
     bool independent;
 public:
+    Surface() noexcept {
+        surface = nullptr;
+        independent = false;
+    }
+
     Surface(const Surface &a_surface) noexcept {
         surface = a_surface.surface;
         independent = false;
@@ -242,6 +258,12 @@ public:
     }
 
     Surface &operator=(const Surface &) = delete;
+
+    Surface &operator=(Surface &&a_surface) noexcept {
+        surface = a_surface.surface;
+        independent = a_surface.independent;
+        return *this;
+    }
 
     void copy(IntPair::PairRef dst) {
         Texture texture = surface;
