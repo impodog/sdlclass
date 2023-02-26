@@ -202,11 +202,15 @@ public:
         independent = true;
     }
 
-    Texture &operator=(const Texture &) = delete;
+    Texture &operator=(const Texture &a_texture) noexcept {
+        texture = a_texture.texture;
+        independent = false;
+        return *this;
+    }
 
-    Texture &operator=(Texture &&a_surface) noexcept {
-        texture = a_surface.texture;
-        independent = a_surface.independent;
+    Texture &operator=(Texture &&a_texture) noexcept {
+        texture = a_texture.texture;
+        independent = a_texture.independent;
         return *this;
     }
 
@@ -270,7 +274,11 @@ public:
         if (independent) SDL_FreeSurface(surface);
     }
 
-    Surface &operator=(const Surface &) = delete;
+    Surface &operator=(const Surface &a_surface) noexcept {
+        surface = a_surface.surface;
+        independent = false;
+        return *this;
+    }
 
     Surface &operator=(Surface &&a_surface) noexcept {
         surface = a_surface.surface;
