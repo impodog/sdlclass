@@ -81,6 +81,10 @@ public:
         return *this;
     }
 
+    [[nodiscard]] constexpr NumType size() const {
+        return this->x * this->y;
+    }
+
     [[nodiscard]] constexpr bool positive() const {
         return this->x > 0 && this->y > 0;
     }
@@ -122,6 +126,10 @@ public:
     BasicRect(int x, int y, int w, int h) noexcept: SDLRectType{x, y, w, h} { null = false; }
 
     explicit BasicRect(PointRef size) noexcept: SDLRectType{0, 0, size.x, size.y} { null = false; }
+
+    BasicRect(PointRef begin, PointRef end) noexcept: SDLRectType{begin.x, begin.y,
+                                                                           end.x - begin.x,
+                                                                           end.y - begin.y} { null = false; }
 
     explicit BasicRect(SurfacePtr surface) noexcept: SDLRectType{0, 0, surface->w, surface->h} { null = false; }
 
@@ -172,15 +180,25 @@ public:
         return *this;
     }
 
-    [[nodiscard]] constexpr PointType intersection(const RectType &rect) const {
+    [[nodiscard]] constexpr PointType inters_size(const RectType &rect) const {
         return {this->w + rect.w - abs(this->x - rect.x), this->h + rect.h - abs(this->y - rect.y)};
     }
 
-    bool empty() {
+    [[nodiscard]] RectType inters_rect(const RectType &rect) const {
+        PointType this_rd = rd(), rect_rd = rect.rd();
+        return {{max(this->x, rect->x), max(this->y, rect->y)},
+                {min(this_rd->x, rect_rd->x), min(this_rd->y, rect->rd.y)}};
+    }
+
+    [[nodiscard]] constexpr bool empty() const {
         return SDL_RectEmpty(this);
     }
 
-    void set_empty() {
+    [[nodiscard]] constexpr bool positive() const {
+        return this->w < 0 && this->h < 0;
+    }
+
+    void to_empty() {
         this->w = this->h = 0;
     }
 
