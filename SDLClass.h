@@ -167,6 +167,10 @@ public:
     constexpr operator const SDL_Rect *() const { // NOLINT(google-explicit-constructor)
         return null ? nullptr : this;
     }
+
+    operator SDL_Rect *() { // NOLINT(google-explicit-constructor)
+        return null ? nullptr : this;
+    }
 };
 
 class Texture {
@@ -216,6 +220,14 @@ public:
 
     void copy(Rect a_dstrect) {
         SDL_RenderCopy(renderer, texture, srcrect, a_dstrect);
+    }
+
+    void set_blend(SDL_BlendMode blendMode) {
+        SDL_SetTextureBlendMode(texture, blendMode);
+    }
+
+    void set_alpha(Uint8 alpha) {
+        SDL_SetTextureAlphaMod(texture, alpha);
     }
 
     operator TexturePtr() { // NOLINT(google-explicit-constructor)
@@ -276,8 +288,8 @@ public:
         texture.copy(a_dstrect);
     }
 
-    void blit(Surface &a_surface, const Rect &srcrect = {}, Rect dstrect = {}) {
-        SDL_BlitSurface(a_surface, srcrect, surface, &dstrect);
+    void blit(Surface &a_surface, const SDL_Rect *srcrect = nullptr, SDL_Rect *dstrect = nullptr) {
+        SDL_BlitSurface(a_surface, srcrect, surface, dstrect);
     }
 
     void set_color_key(const Color &color, int flag = SDL_TRUE) {
@@ -296,7 +308,7 @@ public:
         return SDL_MapRGB(surface->format, color.r, color.g, color.b);
     }
 
-    void fill_rect(const Color &color, const Rect &rect = {}) {
+    void fill_rect(const Color &color, const SDL_Rect *rect = nullptr) {
         SDL_FillRect(surface, rect, get_color(color));
     }
 
