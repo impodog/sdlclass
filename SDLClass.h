@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <type_traits>
 #include "SDL.h"
 #include "SDL_image.h"
 #include "SDL_ttf.h"
@@ -22,156 +23,251 @@ using SurfacePtr = SDL_Surface *;
 extern Renderer renderer;
 extern Window window;
 
-template<class XYType>
-class XYPair {
+template<class SDLPointType>
+class BasicPoint : public SDLPointType {
 public:
-    using PairType = XYPair<XYType>;
-    using PairRef = const PairType &;
-    XYType x, y;
+    using NumType = typeof
+    SDLPointType::x;
+    using PointType = BasicPoint<SDLPointType>;
+    using PointRef = const PointType &;
 
-    XYPair(XYType x, XYType y) noexcept {
+    BasicPoint(NumType x, NumType y) noexcept {
         this->x = x;
         this->y = y;
     }
 
-    PairType operator+(PairRef pair) const {
-        return {x + pair.x, y + pair.y};
+    BasicPoint(const SDLPointType &point) noexcept { // NOLINT(google-explicit-constructor)
+        this->x = point.x;
+        this->y = point.y;
     }
 
-    PairType operator-(PairRef pair) const {
-        return {x - pair.x, y - pair.y};
+    PointType operator+(PointRef point) const {
+        return {this->x + point.x, this->y + point.y};
     }
 
-    PairType operator*(XYType m) const {
-        return {x * m, y * m};
+    PointType operator-(PointRef point) const {
+        return {this->x - point.x, this->y - point.y};
     }
 
-    PairType operator/(XYType m) const {
-        return {x / m, y / m};
+    PointType operator*(NumType m) const {
+        return {this->x * m, this->y * m};
     }
 
-    PairType &operator+=(PairRef pair) {
-        x += pair.x;
-        y += pair.y;
+    PointType operator/(NumType m) const {
+        return {this->x / m, this->y / m};
+    }
+
+    PointType &operator+=(PointRef point) {
+        this->x += point.x;
+        this->y += point.y;
         return *this;
     }
 
-    PairType &operator-=(PairRef pair) {
-        x -= pair.x;
-        y -= pair.y;
+    PointType &operator-=(PointRef point) {
+        this->x -= point.x;
+        this->y -= point.y;
         return *this;
     }
 
-    PairType &operator*=(XYType m) {
-        x *= m;
-        y *= m;
+    PointType &operator*=(NumType m) {
+        this->x *= m;
+        this->y *= m;
         return *this;
     }
 
-    PairType &operator/=(XYType m) {
-        x *= m;
-        y *= m;
+    PointType &operator/=(NumType m) {
+        this->x *= m;
+        this->y *= m;
         return *this;
     }
 
-    template<class XYCastType>
-    operator XYPair<XYCastType>() { // NOLINT(google-explicit-constructor)
-        return {static_cast<XYCastType>(x), static_cast<XYCastType>(y)};
+    [[nodiscard]] constexpr bool positive() const {
+        return this->x > 0 && this->y > 0;
+    }
+
+    template<class NumCastType>
+    operator BasicPoint<NumCastType>() { // NOLINT(google-explicit-constructor)
+        return {static_cast<NumCastType>(this->x), static_cast<NumCastType>(this->y)};
+    }
+
+    operator SDL_Point() { // NOLINT(google-explicit-constructor)
+        return {static_cast<int>(this->x), static_cast<int>(this->y)};
+    }
+
+    operator SDL_FPoint() { // NOLINT(google-explicit-constructor)
+        return {static_cast<float>(this->x), static_cast<float>(this->y)};
     }
 };
 
-using IntPair = XYPair<int>;
-using DoublePair = XYPair<long double>;
+using Point = BasicPoint<SDL_Point>;
+using FPoint = BasicPoint<SDL_FPoint>;
 
-class Rect : public SDL_Rect {
+template<class SDLRectType, class SDLPointType>
+class BasicRect : public SDLRectType {
 protected:
-    using PairRef = IntPair::PairRef;
+    using NumType = typename std::enable_if<std::is_same< typeof
+    SDLRectType::x,
+    typeof SDLPointType::x
+    >::value,
+    typeof SDLRectType::x
+    >::type;
+    using PointType = BasicPoint<SDLPointType>;
+    using PointRef = typename PointType::PointRef;
+    using RectType = BasicRect<SDLRectType, SDLPointType>;
 public:
     bool null;
 
-    Rect() noexcept: SDL_Rect{0, 0, 0, 0} { null = true; }
+    BasicRect() noexcept: SDLRectType{0, 0, 0, 0} { null = true; }
 
-    Rect(int x, int y, int w, int h) noexcept: SDL_Rect{x, y, w, h} { null = false; }
+    BasicRect(int x, int y, int w, int h) noexcept: SDLRectType{x, y, w, h} { null = false; }
 
-    explicit Rect(PairRef size) noexcept: SDL_Rect{0, 0, size.x, size.y} { null = false; }
+    explicit BasicRect(PointRef size) noexcept: SDLRectType{0, 0, size.x, size.y} { null = false; }
 
-    explicit Rect(SurfacePtr surface) noexcept: SDL_Rect{0, 0, surface->w, surface->h} { null = false; }
+    explicit BasicRect(SurfacePtr surface) noexcept: SDLRectType{0, 0, surface->w, surface->h} { null = false; }
 
-    Rect(SurfacePtr surface, PairRef shift) noexcept: SDL_Rect{shift.x, shift.y, surface->w,
-                                                               surface->h} { null = false; }
+    BasicRect(SurfacePtr surface, PointRef shift) noexcept: SDLRectType{shift.x, shift.y, surface->w,
+                                                                        surface->h} { null = false; }
 
-    ~Rect() = default;
+    ~BasicRect() = default;
 
-    Rect &operator=(const Rect &rect) {
-        x = rect.x;
-        y = rect.y;
-        w = rect.w;
-        h = rect.h;
+    RectType &operator=(const RectType &rect) {
+        this->x = rect.x;
+        this->y = rect.y;
+        this->w = rect.w;
+        this->h = rect.h;
         null = rect.null;
         return *this;
     }
 
-    [[nodiscard]] IntPair center() const {
-        return {x + w / 2, y + h / 2};
+    [[nodiscard]] PointType center() const {
+        return {this->x + this->w / 2, this->y + this->h / 2};
     }
 
-    [[nodiscard]] Rect expand_copy(long double m, PairRef pos) const {
-        return {static_cast<int>((x - pos.x) * m + pos.x), static_cast<int>((y - pos.y) * m + pos.y),
-                static_cast<int>(w * m), static_cast<int>(h * m)};
+    [[nodiscard]] constexpr PointType lu() const {
+        return {this->x, this->y};
     }
 
-    Rect &expand(long double m, PairRef pos) {
-        x = static_cast<int>((x - pos.x) * m + pos.x);
-        y = static_cast<int>((y - pos.y) * m + pos.y);
-        w = static_cast<int>(w * m);
-        h = static_cast<int>(h * m);
+    [[nodiscard]] constexpr PointType ld() const {
+        return {this->x, this->y + this->h};
+    }
+
+    [[nodiscard]] constexpr PointType ru() const {
+        return {this->x + this->w, this->y};
+    }
+
+    [[nodiscard]] constexpr PointType rd() const {
+        return {this->x + this->w, this->y + this->h};
+    }
+
+    [[nodiscard]] RectType expand_copy(long double m, PointRef pos) const {
+        return {static_cast<int>((this->x - pos.x) * m + pos.x), static_cast<int>((this->y - pos.y) * m + pos.y),
+                static_cast<int>(this->w * m), static_cast<int>(this->h * m)};
+    }
+
+    RectType &expand(long double m, PointRef pos) {
+        this->x = static_cast<int>((this->x - pos.x) * m + pos.x);
+        this->y = static_cast<int>((this->y - pos.y) * m + pos.y);
+        this->w = static_cast<int>(this->w * m);
+        this->h = static_cast<int>(this->h * m);
         return *this;
     }
 
-    Rect operator+(PairRef pair) const {
-        return {x + pair.x, y + pair.y, w, h};
+    RectType operator+(PointRef point) const {
+        return {this->x + point.x, this->y + point.y, this->w, this->h};
     }
 
-    Rect operator-(PairRef pair) const {
-        return {x - pair.x, y - pair.y, w, h};
+    RectType operator-(PointRef point) const {
+        return {this->x - point.x, this->y - point.y, this->w, this->h};
     }
 
-    Rect operator*(long double m) const {
+    RectType operator*(long double m) const {
         return expand_copy(m, center());
     }
 
-    Rect operator/(long double m) const {
+    RectType operator/(long double m) const {
         return expand_copy(1 / m, center());
     }
 
-    Rect &operator+=(PairRef pair) {
-        x += pair.x;
-        y += pair.y;
+    RectType &operator+=(PointRef point) {
+        this->x += point.x;
+        this->y += point.y;
         return *this;
     }
 
-    Rect &operator-=(PairRef pair) {
-        x -= pair.x;
-        y -= pair.y;
+    RectType &operator-=(PointRef point) {
+        this->x -= point.x;
+        this->y -= point.y;
         return *this;
     }
 
-    Rect &operator*=(long double m) {
+    RectType &operator*=(long double m) {
         return expand(m, center());
     }
 
-    Rect &operator/=(long double m) {
+    RectType &operator/=(long double m) {
         return expand(1 / m, center());
     }
 
-    constexpr operator const SDL_Rect *() const { // NOLINT(google-explicit-constructor)
+    constexpr bool operator==(const RectType &rect) const {
+        return SDL_RectEquals(this, rect);
+    }
+
+    template<class SDLRectPointType = SDLRectType>
+    [[nodiscard]] constexpr typename std::enable_if<std::is_same<SDLRectPointType, SDL_Rect>::value, bool>::type
+    contains(const Point &point) const {
+        return SDL_PointInRect(point, this);
+    }
+
+    template<class SDLRectPointType = SDLRectType>
+    [[nodiscard]] constexpr typename std::enable_if<std::is_same<SDLRectPointType, SDL_FRect>::value, bool>::type
+    contains(const FPoint &point) const {
+        return SDL_PointInFRect(point, this);
+    }
+
+    [[nodiscard]] constexpr PointType intersection(const RectType &rect) const {
+        return {this->w + rect.w - abs(this->x - rect->x), this->h + rect.h - abs(this->y - rect->y)};
+    }
+
+    bool empty() {
+        return SDL_RectEmpty(this);
+    }
+
+    void set_empty() {
+        this->w = this->h = 0;
+    }
+
+    void to_positive() {
+        if (this->w < 0) {
+            this->x += this->w;
+            this->w = -this->w;
+        }
+        if (this->h < 0) {
+            this->y += this->h;
+            this->h = -this->h;
+        }
+    }
+
+    constexpr operator const SDLRectType *() const { // NOLINT(google-explicit-constructor)
         return null ? nullptr : this;
     }
 
-    operator SDL_Rect *() { // NOLINT(google-explicit-constructor)
+    operator SDLRectType *() { // NOLINT(google-explicit-constructor)
         return null ? nullptr : this;
     }
+
+    operator SDL_Rect() { // NOLINT(google-explicit-constructor)
+        return {static_cast<int>(this->x), static_cast<int>(this->y),
+                static_cast<int>(this->w), static_cast<int>(this->h)};
+    }
+
+    operator SDL_FRect() { // NOLINT(google-explicit-constructor)
+        return {static_cast<float>(this->x), static_cast<float>(this->y),
+                static_cast<float>(this->w), static_cast<float>(this->h)};
+    }
 };
+
+using Rect = BasicRect<SDL_Rect, SDL_Point>;
+using FRect = BasicRect<SDL_FRect, SDL_FPoint>;
 
 class Texture {
 protected:
@@ -218,7 +314,7 @@ public:
         if (independent) SDL_DestroyTexture(texture);
     }
 
-    void copy(IntPair::PairRef dst) {
+    void copy(Point::PointRef dst) {
         SDL_RenderCopy(renderer, texture, srcrect, srcrect + dst);
     }
 
@@ -286,7 +382,7 @@ public:
         return *this;
     }
 
-    void copy(IntPair::PairRef dst) {
+    void copy(Point::PointRef dst) {
         Texture texture = surface;
         texture.copy(dst);
     }
