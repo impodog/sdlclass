@@ -172,6 +172,29 @@ public:
         return *this;
     }
 
+    [[nodiscard]] constexpr PointType intersection(const RectType &rect) const {
+        return {this->w + rect.w - abs(this->x - rect.x), this->h + rect.h - abs(this->y - rect.y)};
+    }
+
+    bool empty() {
+        return SDL_RectEmpty(this);
+    }
+
+    void set_empty() {
+        this->w = this->h = 0;
+    }
+
+    void to_positive() {
+        if (this->w < 0) {
+            this->x += this->w;
+            this->w = -this->w;
+        }
+        if (this->h < 0) {
+            this->y += this->h;
+            this->h = -this->h;
+        }
+    }
+
     RectType operator+(PointRef point) const {
         return {this->x + point.x, this->y + point.y, this->w, this->h};
     }
@@ -222,29 +245,6 @@ public:
     [[nodiscard]] constexpr typename std::enable_if<std::is_same<SDLRectPointType, SDL_FRect>::value, bool>::type
     contains(const FPoint &point) const {
         return SDL_PointInFRect(point, this);
-    }
-
-    [[nodiscard]] constexpr PointType intersection(const RectType &rect) const {
-        return {this->w + rect.w - abs(this->x - rect->x), this->h + rect.h - abs(this->y - rect->y)};
-    }
-
-    bool empty() {
-        return SDL_RectEmpty(this);
-    }
-
-    void set_empty() {
-        this->w = this->h = 0;
-    }
-
-    void to_positive() {
-        if (this->w < 0) {
-            this->x += this->w;
-            this->w = -this->w;
-        }
-        if (this->h < 0) {
-            this->y += this->h;
-            this->h = -this->h;
-        }
     }
 
     constexpr operator const SDLRectType *() const { // NOLINT(google-explicit-constructor)
