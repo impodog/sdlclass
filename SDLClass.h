@@ -124,7 +124,7 @@ public:
 
     BasicRect() noexcept: SDLRectType{0, 0, 0, 0} { null = true; }
 
-    BasicRect(int x, int y, int w, int h) noexcept: SDLRectType{x, y, w, h} { null = false; }
+    BasicRect(NumType x, NumType y, NumType w, NumType h) noexcept: SDLRectType{x, y, w, h} { null = false; }
 
     explicit BasicRect(PointRef size) noexcept: SDLRectType{0, 0, size.x, size.y} { null = false; }
 
@@ -169,15 +169,15 @@ public:
     }
 
     [[nodiscard]] RectType expand_copy(long double m, PointRef pos) const {
-        return {static_cast<int>((this->x - pos.x) * m + pos.x), static_cast<int>((this->y - pos.y) * m + pos.y),
-                static_cast<int>(this->w * m), static_cast<int>(this->h * m)};
+        return {static_cast<NumType>((this->x - pos.x) * m + pos.x), static_cast<NumType>((this->y - pos.y) * m + pos.y),
+                static_cast<NumType>(this->w * m), static_cast<NumType>(this->h * m)};
     }
 
     RectType &expand(long double m, PointRef pos) {
-        this->x = static_cast<int>((this->x - pos.x) * m + pos.x);
-        this->y = static_cast<int>((this->y - pos.y) * m + pos.y);
-        this->w = static_cast<int>(this->w * m);
-        this->h = static_cast<int>(this->h * m);
+        this->x = static_cast<NumType>((this->x - pos.x) * m + pos.x);
+        this->y = static_cast<NumType>((this->y - pos.y) * m + pos.y);
+        this->w = static_cast<NumType>(this->w * m);
+        this->h = static_cast<NumType>(this->h * m);
         return *this;
     }
 
