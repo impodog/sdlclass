@@ -187,8 +187,8 @@ public:
 
     [[nodiscard]] RectType inters_rect(RectRef rect) const {
         PointType this_rd = rd(), rect_rd = rect.rd();
-        return {{max(this->x, rect.x), max(this->y, rect.y)},
-                {min(this_rd->x, rect_rd.x), min(this_rd->y, rect.rd.y)}};
+        return {{std::max(this->x, rect.x), std::max(this->y, rect.y)},
+                {std::min(this_rd.x, rect_rd.x), std::min(this_rd.y, rect_rd.y)}};
     }
 
     [[nodiscard]] constexpr bool empty() const {
