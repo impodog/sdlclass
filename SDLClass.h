@@ -118,6 +118,7 @@ protected:
     using PointType = BasicPoint<SDLPointType>;
     using PointRef = typename PointType::PointRef;
     using RectType = BasicRect<SDLRectType, SDLPointType>;
+    using RectRef = const RectType &;
 public:
     bool null;
 
@@ -138,7 +139,7 @@ public:
 
     ~BasicRect() = default;
 
-    RectType &operator=(const RectType &rect) {
+    RectType &operator=(RectRef rect) {
         this->x = rect.x;
         this->y = rect.y;
         this->w = rect.w;
@@ -180,14 +181,14 @@ public:
         return *this;
     }
 
-    [[nodiscard]] constexpr PointType inters_size(const RectType &rect) const {
+    [[nodiscard]] constexpr PointType inters_size(RectRef rect) const {
         return {this->w + rect.w - abs(this->x - rect.x), this->h + rect.h - abs(this->y - rect.y)};
     }
 
-    [[nodiscard]] RectType inters_rect(const RectType &rect) const {
+    [[nodiscard]] RectType inters_rect(RectRef rect) const {
         PointType this_rd = rd(), rect_rd = rect.rd();
-        return {{max(this->x, rect->x), max(this->y, rect->y)},
-                {min(this_rd->x, rect_rd->x), min(this_rd->y, rect->rd.y)}};
+        return {{max(this->x, rect.x), max(this->y, rect.y)},
+                {min(this_rd->x, rect_rd.x), min(this_rd->y, rect.rd.y)}};
     }
 
     [[nodiscard]] constexpr bool empty() const {
@@ -249,7 +250,7 @@ public:
         return expand(1 / m, center());
     }
 
-    constexpr bool operator==(const RectType &rect) const {
+    constexpr bool operator==(RectRef rect) const {
         return SDL_RectEquals(this, rect);
     }
 
