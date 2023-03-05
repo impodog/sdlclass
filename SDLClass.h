@@ -21,8 +21,8 @@ using Window = SDL_Window *;
 using Renderer = SDL_Renderer *;
 using FontPtr = TTF_Font *;
 using Color = SDL_Color;
-using TexturePtr = SDL_Texture *;
-using SurfacePtr = SDL_Surface *;
+using SDLTexturePtr = SDL_Texture *;
+using SDLSurfacePtr = SDL_Surface *;
 
 extern Renderer renderer;
 extern Window window;
@@ -34,6 +34,10 @@ public:
     SDLPointType::x;
     using PointType = BasicPoint<SDLPointType>;
     using PointRef = const PointType &;
+
+    BasicPoint() noexcept {
+        this->x = this->y = 0;
+    }
 
     BasicPoint(NumType x, NumType y) noexcept {
         this->x = x;
@@ -85,6 +89,14 @@ public:
         return *this;
     }
 
+    PointType operator-() const {
+        return {-this->x, -this->y};
+    }
+
+    NumType distance(PointRef point) const {
+        return sqrt(pow(point.x - this->x, 2) + pow(point.y - this->y, 2));
+    }
+
     [[nodiscard]] constexpr NumType size() const {
         return this->x * this->y;
     }
@@ -95,6 +107,21 @@ public:
 
     [[nodiscard]] constexpr bool negative() const {
         return this->x < 0 && this->y < 0;
+    }
+
+    void to_positive() {
+        this->x = abs(this->x);
+        this->y = abs(this->y);
+    }
+
+    void to_negative() {
+        this->x = -abs(this->x);
+        this->y = -abs(this->y);
+    }
+
+    void invert() {
+        this->x = -this->x;
+        this->y = -this->y;
     }
 
     template<class NumCastType>
@@ -148,10 +175,10 @@ public:
                                                                   end.x - begin.x,
                                                                   end.y - begin.y} { null = false; }
 
-    explicit BasicRect(SurfacePtr surface) noexcept: SDLRectType{0, 0, surface->w, surface->h} { null = false; }
+    explicit BasicRect(SDLSurfacePtr surface) noexcept: SDLRectType{0, 0, surface->w, surface->h} { null = false; }
 
-    BasicRect(SurfacePtr surface, PointRef shift) noexcept: SDLRectType{shift.x, shift.y, surface->w,
-                                                                        surface->h} { null = false; }
+    BasicRect(SDLSurfacePtr surface, PointRef shift) noexcept: SDLRectType{shift.x, shift.y, surface->w,
+                                                                           surface->h} { null = false; }
 
     ~BasicRect() = default;
 
@@ -234,6 +261,14 @@ public:
 
     [[nodiscard]] constexpr bool negative() const {
         return this->w < 0 && this->h < 0;
+    }
+
+    [[nodiscard]] constexpr bool eq_positive() const {
+        return this->w >= 0 && this->h >= 0;
+    }
+
+    [[nodiscard]] constexpr bool eq_negative() const {
+        return this->w <= 0 && this->h <= 0;
     }
 
     void to_empty() {
@@ -327,6 +362,11 @@ public:
         return {static_cast<float>(this->x), static_cast<float>(this->y),
                 static_cast<float>(this->w), static_cast<float>(this->h)};
     }
+
+    operator BasicRect<SDL_Rect, SDL_Point>() { // NOLINT(google-explicit-constructor)
+        return {static_cast<int>(this->x), static_cast<int>(this->y),
+                static_cast<int>(this->w), static_cast<int>(this->h)};
+    }
 };
 
 template<class SDLRectType, class SDLPointType>
@@ -340,7 +380,7 @@ using FRect = BasicRect<SDL_FRect, SDL_FPoint>;
 
 class Texture {
 protected:
-    TexturePtr texture;
+    SDLTexturePtr texture;
     bool independent;
 public:
     Rect srcrect;
@@ -356,12 +396,12 @@ public:
         independent = false;
     }
 
-    Texture(TexturePtr a_texture, bool a_independent = true) noexcept { // NOLINT(google-explicit-constructor)
+    Texture(SDLTexturePtr a_texture, bool a_independent = true) noexcept { // NOLINT(google-explicit-constructor)
         texture = a_texture;
         independent = a_independent;
     }
 
-    Texture(SurfacePtr a_surface) noexcept { // NOLINT(google-explicit-constructor)
+    Texture(SDLSurfacePtr a_surface) noexcept { // NOLINT(google-explicit-constructor)
         texture = SDL_CreateTextureFromSurface(renderer, a_surface);
         srcrect = Rect(a_surface);
         independent = true;
@@ -387,8 +427,16 @@ public:
         SDL_RenderCopy(renderer, texture, srcrect, srcrect + dst);
     }
 
-    void copy(Rect a_dstrect) {
+    void copy(const Rect &a_srcrect, Point::PointRef dst) {
+        SDL_RenderCopy(renderer, texture, a_srcrect, a_srcrect + dst);
+    }
+
+    void copy(const SDL_Rect *a_dstrect) {
         SDL_RenderCopy(renderer, texture, srcrect, a_dstrect);
+    }
+
+    void copy(const SDL_Rect *a_srcrect, const SDL_Rect *a_dstrect) {
+        SDL_RenderCopy(renderer, texture, a_srcrect, a_dstrect);
     }
 
     void set_blend(SDL_BlendMode blendMode) {
@@ -399,14 +447,18 @@ public:
         SDL_SetTextureAlphaMod(texture, alpha);
     }
 
-    operator TexturePtr() { // NOLINT(google-explicit-constructor)
+    SDLTexturePtr to_ptr() {
+        return texture;
+    }
+
+    operator SDLTexturePtr() { // NOLINT(google-explicit-constructor)
         return texture;
     }
 };
 
 class Surface {
 protected:
-    SurfacePtr surface;
+    SDLSurfacePtr surface;
     bool independent;
 public:
     Surface() noexcept {
@@ -419,7 +471,7 @@ public:
         independent = false;
     }
 
-    Surface(SurfacePtr a_surface, bool a_independent = true) noexcept { // NOLINT(google-explicit-constructor)
+    Surface(SDLSurfacePtr a_surface, bool a_independent = true) noexcept { // NOLINT(google-explicit-constructor)
         surface = a_surface;
         independent = a_independent;
     }
@@ -456,12 +508,34 @@ public:
         texture.copy(dst);
     }
 
-    void copy(Rect a_dstrect) {
+    void copy(const Rect &srcrect, Point::PointRef dst) {
+        Texture texture = surface;
+        texture.copy(srcrect, srcrect + dst);
+    }
+
+    void copy(const SDL_Rect *a_dstrect) {
         Texture texture = surface;
         texture.copy(a_dstrect);
     }
 
-    void blit(Surface &a_surface, const SDL_Rect *srcrect = nullptr, SDL_Rect *dstrect = nullptr) {
+    void copy(const Rect &srcrect, const SDL_Rect *dstrect) {
+        Texture texture = surface;
+        texture.copy(srcrect, dstrect);
+    }
+
+    void blit(Surface &a_surface, Point::PointRef dst) {
+        SDL_BlitSurface(a_surface, nullptr, surface, Rect{a_surface, dst});
+    }
+
+    void blit(Surface &a_surface, const Rect &srcrect, Point::PointRef dst) {
+        SDL_BlitSurface(a_surface, srcrect, surface, srcrect + dst);
+    }
+
+    void blit(Surface &a_surface, SDL_Rect *dstrect = nullptr) {
+        SDL_BlitSurface(a_surface, nullptr, surface, dstrect);
+    }
+
+    void blit(Surface &a_surface, const SDL_Rect *srcrect, SDL_Rect *dstrect) {
         SDL_BlitSurface(a_surface, srcrect, surface, dstrect);
     }
 
@@ -485,7 +559,11 @@ public:
         SDL_FillRect(surface, rect, get_color(color));
     }
 
-    operator SurfacePtr() { // NOLINT(google-explicit-constructor)
+    SDLSurfacePtr to_ptr() {
+        return surface;
+    }
+
+    operator SDLSurfacePtr() { // NOLINT(google-explicit-constructor)
         return surface;
     }
 };
@@ -506,19 +584,19 @@ public:
 
     Font &operator=(const Font &) = delete;
 
-    Surface render(const std::string &text, const Color &color) {
+    SDLSurfacePtr render(const std::string &text, const Color &color) {
         return TTF_RenderUTF8_Blended(font, text.c_str(), color);
     }
 
-    Surface render_wrapped(const std::string &text, const Color &color, Uint32 wrapLength = 0) {
+    SDLSurfacePtr render_wrapped(const std::string &text, const Color &color, Uint32 wrapLength = 0) {
         return TTF_RenderUTF8_Blended_Wrapped(font, text.c_str(), color, wrapLength);
     }
 
-    Surface render_solid(const std::string &text, const Color &color) {
+    SDLSurfacePtr render_solid(const std::string &text, const Color &color) {
         return TTF_RenderUTF8_Solid(font, text.c_str(), color);
     }
 
-    Surface render_solid_wrapped(const std::string &text, const Color &color, Uint32 wrapLength = 0) {
+    SDLSurfacePtr render_solid_wrapped(const std::string &text, const Color &color, Uint32 wrapLength = 0) {
         return TTF_RenderUTF8_Solid_Wrapped(font, text.c_str(), color, wrapLength);
     }
 };
@@ -536,7 +614,7 @@ public:
         fonts.erase(size);
     }
 
-    Font &operator[](int size) {
+    Font &at(int size) {
         try {
             return get(size);
         } catch (const std::out_of_range &) {
