@@ -14,7 +14,8 @@
 #include "SDL_image.h"
 #include "SDL_ttf.h"
 
-namespace SDLClass {
+#define IF_RECT_TYPE(rect_type, return_type) template<class SDLRectPointType = SDLRectType>\
+    [[nodiscard]] constexpr typename std::enable_if<std::is_same<SDLRectPointType, rect_type>::value, return_type>::type
 
     using WindowPtr = SDL_Window *;
     using RendererPtr = SDL_Renderer *;
@@ -88,6 +89,17 @@ namespace SDLClass {
         [[nodiscard]] constexpr NumType size() const {
             return this->x * this->y;
         }
+    PointType operator-() const {
+        return {-this->x, -this->y};
+    }
+
+    NumType distance(PointRef point) const {
+        return sqrt(pow(point.x - this->x, 2) + pow(point.y - this->y, 2));
+    }
+
+    [[nodiscard]] constexpr NumType size() const {
+        return this->x * this->y;
+    }
 
         [[nodiscard]] constexpr bool positive() const {
             return this->x > 0 && this->y > 0;
@@ -97,6 +109,29 @@ namespace SDLClass {
         operator BasicPoint<NumCastType>() { // NOLINT(google-explicit-constructor)
             return {static_cast<NumCastType>(this->x), static_cast<NumCastType>(this->y)};
         }
+    [[nodiscard]] constexpr bool negative() const {
+        return this->x < 0 && this->y < 0;
+    }
+
+    void to_positive() {
+        this->x = abs(this->x);
+        this->y = abs(this->y);
+    }
+
+    void to_negative() {
+        this->x = -abs(this->x);
+        this->y = -abs(this->y);
+    }
+
+    void invert() {
+        this->x = -this->x;
+        this->y = -this->y;
+    }
+
+    template<class NumCastType>
+    operator BasicPoint<NumCastType>() { // NOLINT(google-explicit-constructor)
+        return {static_cast<NumCastType>(this->x), static_cast<NumCastType>(this->y)};
+    }
 
         operator SDL_Point() { // NOLINT(google-explicit-constructor)
             return {static_cast<int>(this->x), static_cast<int>(this->y)};
@@ -189,23 +224,54 @@ namespace SDLClass {
             return {this->w + rect.w - abs(this->x - rect.x), this->h + rect.h - abs(this->y - rect.y)};
         }
 
-        [[nodiscard]] RectType inters_rect(RectRef rect) const {
-            PointType this_rd = rd(), rect_rd = rect.rd();
-            return {{max(this->x, rect.x),       max(this->y, rect.y)},
-                    {min(this_rd->x, rect_rd.x), min(this_rd->y, rect_rd.y)}};
-        }
+    [[nodiscard]] RectType inters_rect(RectRef rect) const {
+        PointType this_rd = rd(), rect_rd = rect.rd();
+        return {{std::max(this->x, rect.x),      std::max(this->y, rect.y)},
+                {std::min(this_rd.x, rect_rd.x), std::min(this_rd.y, rect_rd.y)}};
+    }
 
-        [[nodiscard]] constexpr bool empty() const {
-            return SDL_RectEmpty(this);
-        }
+    IF_RECT_TYPE(SDL_Rect, bool)
+    empty() const {
+        return SDL_RectEmpty(this);
+    }
 
-        [[nodiscard]] constexpr bool positive() const {
-            return this->w < 0 && this->h < 0;
-        }
+    IF_RECT_TYPE(SDL_FRect, bool)
+    empty() const {
+        return SDL_FRectEmpty(this);
+    }
+
+    IF_RECT_TYPE(SDL_Rect, bool)
+    contains(const Point &point) const {
+        return SDL_PointInRect(point, this);
+    }
+
+    IF_RECT_TYPE(SDL_FRect, bool)
+    contains(const FPoint &point) const {
+        return SDL_PointInFRect(point, this);
+    }
+
+    [[nodiscard]] constexpr bool positive() const {
+        return this->w > 0 && this->h > 0;
+    }
+
+    [[nodiscard]] constexpr bool negative() const {
+        return this->w < 0 && this->h < 0;
+    }
 
         void to_empty() {
             this->w = this->h = 0;
         }
+    [[nodiscard]] constexpr bool eq_positive() const {
+        return this->w >= 0 && this->h >= 0;
+    }
+
+    [[nodiscard]] constexpr bool eq_negative() const {
+        return this->w <= 0 && this->h <= 0;
+    }
+
+    void to_empty() {
+        this->w = this->h = 0;
+    }
 
         void to_positive() {
             if (this->w < 0) {
@@ -218,9 +284,16 @@ namespace SDLClass {
             }
         }
 
-        RectType operator+(PointRef point) const {
-            return {this->x + point.x, this->y + point.y, this->w, this->h};
-        }
+    void invert() {
+        this->x += this->w;
+        this->w = -this->w;
+        this->y += this->h;
+        this->h = -this->h;
+    }
+
+    RectType operator+(PointRef point) const {
+        return {this->x + point.x, this->y + point.y, this->w, this->h};
+    }
 
         RectType operator-(PointRef point) const {
             return {this->x - point.x, this->y - point.y, this->w, this->h};
@@ -288,9 +361,25 @@ namespace SDLClass {
                     static_cast<float>(this->w), static_cast<float>(this->h)};
         }
     };
+    operator SDL_FRect() { // NOLINT(google-explicit-constructor)
+        return {static_cast<float>(this->x), static_cast<float>(this->y),
+                static_cast<float>(this->w), static_cast<float>(this->h)};
+    }
 
-    using Rect = BasicRect<SDL_Rect, SDL_Point>;
-    using FRect = BasicRect<SDL_FRect, SDL_FPoint>;
+    operator BasicRect<SDL_Rect, SDL_Point>() { // NOLINT(google-explicit-constructor)
+        return {static_cast<int>(this->x), static_cast<int>(this->y),
+                static_cast<int>(this->w), static_cast<int>(this->h)};
+    }
+};
+
+template<class SDLRectType, class SDLPointType>
+std::ostream &operator<<(std::ostream &ostream, const BasicRect<SDLRectType, SDLPointType> &rect) {
+    ostream << "(" << rect.x << "," << rect.y << "," << rect.w << "," << rect.h << ")";
+    return ostream;
+}
+
+using Rect = BasicRect<SDL_Rect, SDL_Point>;
+using FRect = BasicRect<SDL_FRect, SDL_FPoint>;
 
     class Texture {
     protected:
