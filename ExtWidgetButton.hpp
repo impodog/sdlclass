@@ -7,7 +7,7 @@
 
 #include "ExtWidget.hpp"
 
-#define BUTTON_PARENT WidgetBase<MouseClickMgr>
+#define BUTTON_PARENT WidgetBase<MouseMgr>
 
 NS_BEGIN
     static const struct ColorScheme {
@@ -22,12 +22,14 @@ NS_BEGIN
                           {235, 240, 250},
                           {175, 180, 190}};
 
-    class Button : public BUTTON_PARENT {
+    WIDGET_TEMPLATE(=MouseMgr)
+    class Button : public WIDGET_PARENT {
     protected:
-        using WidgetParent = BUTTON_PARENT;
+        using WidgetParent = WIDGET_PARENT;
         using NumType = typeof(Point::x);
         using PointRef = typename Point::PointRef;
         using ConstSchemeRef = const ColorScheme &;
+        using PressedDefinition = bool (*)(const Rect &but_rect, const MgrType &mgr);
         Point size, img_rel;
         NumType outline_size;
         Surface img;
@@ -35,6 +37,14 @@ NS_BEGIN
 
         Surface *surface = nullptr;
         bool is_front = false;
+
+        PressedDefinition pressed_def;
+
+        template<typename MgrType_ = MgrType>
+        static typename std::enable_if<std::is_same<MgrType_, MouseMgr>::value, bool>::type
+        mouse_pressed(const Rect &but_rect, const MouseMgr &mgr) {
+            return but_rect.contains(mgr.at(MouseMgr::left));
+        }
 
         void draw_front() {
             delete surface;
@@ -60,16 +70,23 @@ NS_BEGIN
             }
         }
 
-
     public:
-
+/*Parameters:
+ * pos : From base clss WidgetBase, the position kept by Button itself.
+ * size : Yhe size of the button.
+ * outline_size : The length for Button outline(edges), defaults to 1.
+ * img : The img shown along with the button. If it is nullptr, then no image is shown. Defaults to nullptr.
+ * img_pos : The relative position to the button showing img. If it is nullptr, then show the image in the center. Defaults to nullptr.
+ * scheme : The color scheme of button as the name shows. Defaults to scheme_bright.
+ * pressed_def : A function returning bool to define whether the button is pressed. Defaults to mouse_pressed().*/
         Button(PointRef pos, PointRef size, NumType outline_size = 1,
                SDLSurfacePtr img = nullptr, const Point *img_pos = nullptr,
-               ConstSchemeRef scheme = scheme_bright) :
+               ConstSchemeRef scheme = scheme_bright, PressedDefinition pressed_def = mouse_pressed) :
                 WidgetParent{pos},
                 size(size), outline_size(outline_size),
                 img(img, false),
-                scheme(scheme) {
+                scheme(scheme),
+                pressed_def(pressed_def) {
             if (img != nullptr) {
                 if (img_pos == nullptr) {
                     img_rel = {(size.x - img->w) / 2, (size.y - img->h) / 2};
@@ -96,19 +113,21 @@ NS_BEGIN
             return true;
         }
 
-        void process(const Point &rel, const MouseClickMgr *mgr, WidgetResult &result) override {
+        void process(const Point &rel, const MgrType &mgr, WidgetResult &result) override {
             Point real = this->pos + rel;
-            result.set(WidgetResult::button);
-            if (Rect{real.x, real.y, size.x, size.y}.contains(mgr->at(MouseClickMgr::left))) {
-                result.result.button.up = to_front();
+            result.set(WidgetResult::t_button);
+            if (pressed_def({real.x, real.y, size.x, size.y}, mgr)) {
+                result.result.button.pressed = to_front();
             } else
-                result.result.button.down = to_back();
+                result.result.button.released = to_back();
         }
 
         void present(RendererPtr renderer, const Point &rel) override {
             surface->copy_to(renderer, this->pos + rel);
         }
     };
+
+    using DefaultButton = Button<>;
 NS_END
 
 #undef BUTTON_PARENT

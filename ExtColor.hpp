@@ -29,7 +29,7 @@
 #define rgb(r, g, b) Color{r,g,b}
 
 NS_BEGIN
-    /*Extension subclass of SDL_Color*/
+/*Extension subclass of SDL_Color*/
     class Color : public SDL_Color {
     protected:
     public:

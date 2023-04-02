@@ -12,7 +12,7 @@
 #include "ExtBase.h"
 
 NS_BEGIN
-    /*A simple manager for keys down/up from all ranges*/
+/*A simple manager for keys down/up from all ranges*/
     template<typename KeyType>
     class KeyMgr {
     protected:
@@ -57,8 +57,8 @@ NS_BEGIN
         }
     };
 
-    /*Subclass of KeyMgr, but added records for key clicked
-     * NOTICE : record() MUST be called before down() and up(); refresh() must be called after the key management*/
+/*Subclass of KeyMgr, but added records for key clicked
+ * NOTICE : record() MUST be called before down() and up(); refresh() must be called after the key management*/
     template<typename KeyType>
     class KeyClickMgr : public KeyMgr<KeyType> {
     protected:
@@ -98,7 +98,7 @@ NS_BEGIN
         }
     };
 
-    class MouseClickMgr : public MOUSE_CLICK_MGR_PARENT {
+    class MouseMgr : public MOUSE_CLICK_MGR_PARENT {
     protected:
     public:
         using MgrParent = MOUSE_CLICK_MGR_PARENT;
@@ -107,7 +107,7 @@ NS_BEGIN
 
         static const int pos = 0, left = 1, middle = 2, right = 3, scroll_up = 4, scroll_down = 5;
 
-        MouseClickMgr() : MgrParent(MOUSE_KEYS) {
+        MouseMgr() : MgrParent(MOUSE_KEYS) {
             for (auto key: MOUSE_KEYS)
                 position.insert({key, VOID_POINT});
         }
