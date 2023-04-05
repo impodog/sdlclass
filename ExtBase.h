@@ -8,6 +8,7 @@
 #include "SDLClass.h"
 #include <limits>
 #include <iostream>
+#include <vector>
 
 #define NS_BEGIN namespace SDLExt {
 #define NS_END }
@@ -23,6 +24,16 @@
 
 #define WIDGET_TEMPLATE(additional...) template<typename MgrType additional>
 #define WIDGET_PARENT WidgetBase<MgrType>
+#define WIDGET_TYPEDEFS using WidgetParent = WIDGET_PARENT;\
+using NumType = WidgetParent::NumType;\
+using PointRef = WidgetParent::PointRef;                   \
+using ConstSchemeRef = WidgetParent::ConstSchemeRef;
+#define WIDGET_TYPEDEFS_WITHOUT_PARENT using NumType = WidgetParent::NumType;\
+using PointRef = WidgetParent::PointRef;                   \
+using ConstSchemeRef = WidgetParent::ConstSchemeRef;
+#define WIDGET_TYPE(type)[[nodiscard]] constexpr WidgetResult::WidgetType get_type() const noexcept override { return type; }
+#define WIDGET_PROCESS void process(const Point &rel, const MgrType &mgr, WidgetResult &result)
+#define WIDGET_PRESENT void present(RendererPtr renderer, const Point &rel)
 
 NS_BEGIN
     using namespace SDLClass;
@@ -76,6 +87,10 @@ NS_END
 
 #undef WIDGET_TEMPLATE
 #undef WIDGET_PARENT
+#undef WIDGET_TYPEDEFS
+#undef WIDGET_TYPE
+#undef WIDGET_PROCESS
+#undef WIDGET_PRESENT
 
 #undef UNDEF_MACROS
 

@@ -108,6 +108,14 @@ namespace SDLClass {
             return this->x < 0 && this->y < 0;
         }
 
+        [[nodiscard]] constexpr bool is0() const {
+            return this->x == 0 && this->y == 0;
+        }
+
+        [[nodiscard]] constexpr bool isn0() const {
+            return this->x != 0 || this->y != 0;
+        }
+
         void to_positive() {
             this->x = abs(this->x);
             this->y = abs(this->y);
@@ -116,6 +124,10 @@ namespace SDLClass {
         void to_negative() {
             this->x = -abs(this->x);
             this->y = -abs(this->y);
+        }
+
+        void to0() {
+            this->x = this->y = 0;
         }
 
         void invert() {
@@ -139,6 +151,12 @@ namespace SDLClass {
 
     using Point = BasicPoint<SDL_Point>;
     using FPoint = BasicPoint<SDL_FPoint>;
+
+    template<class SDLPointType>
+    std::ostream &operator<<(std::ostream &ostream, const BasicPoint<SDLPointType> &point) {
+        ostream << "(" << point.x << "," << point.y << ")";
+        return ostream;
+    }
 
     template<typename SDLRectType, typename SDLPointType>
     class BasicRect : public SDLRectType {
@@ -366,9 +384,10 @@ namespace SDLClass {
         Texture(SDLTexturePtr texture, bool independent = true) noexcept:// NOLINT(google-explicit-constructor)
                 texture(texture), independent(independent) {}
 
-        Texture(RendererPtr renderer, SDLSurfacePtr surface) noexcept: texture(
-                SDL_CreateTextureFromSurface(renderer, surface)), srcrect(surface), independent(
-                true) {} // NOLINT(google-explicit-constructor
+        Texture(RendererPtr renderer, SDLSurfacePtr surface) noexcept: srcrect(surface), independent(
+                true) {
+            texture = SDL_CreateTextureFromSurface(renderer, surface);
+        } // NOLINT(google-explicit-constructor
 
         Texture &operator=(const Texture &a_texture) noexcept {
             texture = a_texture.texture;
@@ -437,16 +456,38 @@ namespace SDLClass {
 
 
         ~Surface() {
-            if (independent)
-                SDL_FreeSurface(surface);
+            free();
         }
 
-        Surface &operator=(const Surface &a_surface) = default;
+        Surface &operator=(const Surface &a_surface) noexcept {
+            free();
+            surface = a_surface.surface;
+            independent = false;
+            return *this;
+        }
 
-        Surface &operator=(Surface &&a_surface) = default;
+        Surface &operator=(Surface &&a_surface) noexcept {
+            free();
+            surface = a_surface.surface;
+            independent = a_surface.independent;
+            a_surface.independent = false;
+            return *this;
+        }
 
         [[nodiscard]] constexpr bool is_null() const noexcept {
             return surface == nullptr;
+        }
+
+        [[nodiscard]] Point size() const noexcept {
+            return Point{surface->w, surface->h};
+        }
+
+        // This function is safe to call with nullptr and will eventually set surface to nullptr
+        void free() noexcept {
+            if (independent) {
+                SDL_FreeSurface(surface);
+                surface = nullptr;
+            }
         }
 
         void copy_to(RendererPtr renderer, Point::PointRef dst) {
@@ -525,6 +566,31 @@ namespace SDLClass {
         Font(const Font &) = delete;
 
         Font &operator=(const Font &) = delete;
+
+        [[nodiscard]] int height() const {
+            return TTF_FontHeight(font);
+        }
+
+        [[nodiscard]] int is_fixed_width() const {
+            return TTF_FontFaceIsFixedWidth(font);
+        }
+
+        void set_style(int style) {
+            TTF_SetFontStyle(font, style);
+        }
+
+        void set_outline(int outline) {
+            TTF_SetFontOutline(font, outline);
+        }
+
+        const char *family_name() {
+            return TTF_FontFaceFamilyName(font);
+        }
+
+        const char *style_name() {
+            return TTF_FontFaceStyleName(font);
+        }
+
 
         SDLSurfacePtr render(const std::string &text, const SDL_Color &color) {
             return TTF_RenderUTF8_Blended(font, text.c_str(), color);

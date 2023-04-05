@@ -8,42 +8,39 @@
 #include "ExtWidget.hpp"
 
 #define BUTTON_PARENT WidgetBase<MouseMgr>
+#define ENABLE_IF_DRAGGABLE(ret_type) template <bool draggable_ = draggable> \
+typename std::enable_if<draggable_, ret_type>::type
 
 NS_BEGIN
-    static const struct ColorScheme {
-        Color back_body, back_outline, front_body, front_outline;
-    }
-            scheme_dark{{25,  25,  25},
-                        {70,  70,  70},
-                        {50,  50,  50},
-                        {145, 145, 145}},
-            scheme_bright{{210, 220, 240},
-                          {130, 130, 135},
-                          {235, 240, 250},
-                          {175, 180, 190}};
-
     WIDGET_TEMPLATE(=MouseMgr)
     class Button : public WIDGET_PARENT {
     protected:
-        using WidgetParent = WIDGET_PARENT;
-        using NumType = typeof(Point::x);
-        using PointRef = typename Point::PointRef;
-        using ConstSchemeRef = const ColorScheme &;
-        using PressedDefinition = bool (*)(const Rect &but_rect, const MgrType &mgr);
+        template<typename MgrType_, bool vertical>
+        friend class Scrollbar;
+
+        WIDGET_TYPEDEFS
+        using PressedPred = bool (*)(const MgrType &, const Rect &, bool);
         Point size, img_rel;
         NumType outline_size;
         Surface img;
         ConstSchemeRef scheme;
 
         Surface *surface = nullptr;
-        bool is_front = false;
 
-        PressedDefinition pressed_def;
+        PressedPred pressed_pred;
 
         template<typename MgrType_ = MgrType>
         static typename std::enable_if<std::is_same<MgrType_, MouseMgr>::value, bool>::type
-        mouse_pressed(const Rect &but_rect, const MouseMgr &mgr) {
-            return but_rect.contains(mgr.at(MouseMgr::left));
+        mouse_pressed(const MouseMgr &mgr, const Rect &but_rect, bool is_front) {
+            return mgr.is_down(MouseMgr::left) && but_rect.contains(mgr.at(MouseMgr::pos)) &&
+                   (but_rect.contains(mgr.at(MouseMgr::left)) || is_front);
+        }
+
+        template<typename MgrType_ = MgrType, typename KeyType = SDL_Keycode>
+        static typename std::enable_if<std::is_same<MgrType_, MouseAndKeyClickMgr<KeyType>>::value, bool>::type
+        mouse_pressed(const MgrType &mgr, const Rect &but_rect, bool is_front) {
+            return mgr.mouse.is_down(MouseMgr::left) && but_rect.contains(mgr.mouse.at(MouseMgr::pos)) &&
+                   (but_rect.contains(mgr.mouse.at(MouseMgr::left)) || is_front);
         }
 
         void draw_front() {
@@ -71,22 +68,24 @@ NS_BEGIN
         }
 
     public:
-/*Parameters:
- * pos : From base clss WidgetBase, the position kept by Button itself.
- * size : Yhe size of the button.
- * outline_size : The length for Button outline(edges), defaults to 1.
- * img : The img shown along with the button. If it is nullptr, then no image is shown. Defaults to nullptr.
- * img_pos : The relative position to the button showing img. If it is nullptr, then show the image in the center. Defaults to nullptr.
- * scheme : The color scheme of button as the name shows. Defaults to scheme_bright.
- * pressed_def : A function returning bool to define whether the button is pressed. Defaults to mouse_pressed().*/
+        bool is_front = false;
+
+/**
+ * \param pos From base class \c WidgetBase, the position kept by \c Button itself.
+ * \param size The size of the button.
+ * \param outline_size The length for \c Button outline(edges). Defaults to 1.
+ * \param img The img shown along with the button. Defaults to \c nullptr.
+ * \param img_pos The relative position to the button showing img. If \c NULL, then show the image in the center. Defaults to \c nullptr.
+ * \param scheme The color scheme of button as the name shows. Defaults to \c scheme_bright.
+ * \param pressed_pred A function returning bool to define whether the button is pressed. Defaults to \c mouse_pressed.*/
         Button(PointRef pos, PointRef size, NumType outline_size = 1,
                SDLSurfacePtr img = nullptr, const Point *img_pos = nullptr,
-               ConstSchemeRef scheme = scheme_bright, PressedDefinition pressed_def = mouse_pressed) :
+               ConstSchemeRef scheme = scheme_bright, PressedPred pressed_pred = mouse_pressed) :
                 WidgetParent{pos},
                 size(size), outline_size(outline_size),
                 img(img, false),
                 scheme(scheme),
-                pressed_def(pressed_def) {
+                pressed_pred(pressed_pred) {
             if (img != nullptr) {
                 if (img_pos == nullptr) {
                     img_rel = {(size.x - img->w) / 2, (size.y - img->h) / 2};
@@ -95,7 +94,7 @@ NS_BEGIN
             draw_back();
         }
 
-        ~Button() {
+        ~Button() override {
             delete surface;
         }
 
@@ -113,21 +112,29 @@ NS_BEGIN
             return true;
         }
 
-        void process(const Point &rel, const MgrType &mgr, WidgetResult &result) override {
+        Rect get_rect(PointRef rel) const {
             Point real = this->pos + rel;
-            result.set(WidgetResult::t_button);
-            if (pressed_def({real.x, real.y, size.x, size.y}, mgr)) {
+            return {real.x, real.y, size.x, size.y};
+        }
+
+        WIDGET_PROCESS override {
+            result.set_type(WidgetResult::t_button);
+            if (pressed_pred(mgr, get_rect(rel), is_front)) {
                 result.result.button.pressed = to_front();
             } else
                 result.result.button.released = to_back();
         }
 
-        void present(RendererPtr renderer, const Point &rel) override {
+        WIDGET_PRESENT override {
             surface->copy_to(renderer, this->pos + rel);
         }
+
+        WIDGET_TYPE(WidgetResult::t_button);
     };
 
     using DefaultButton = Button<>;
+    template<typename KeyType = SDL_Keycode>
+    using MouseAndKeyButton = Button<MouseAndKeyClickMgr<KeyType>>;
 NS_END
 
 #undef BUTTON_PARENT

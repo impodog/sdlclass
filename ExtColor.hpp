@@ -66,8 +66,6 @@ NS_BEGIN
 
         Color &operator=(Color &&) = default;
     };
-
-    using ConstColorRef = const Color &;
 NS_END
 
 #undef COLOR_OP
