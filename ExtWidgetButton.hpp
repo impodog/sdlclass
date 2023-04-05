@@ -16,7 +16,8 @@ NS_BEGIN
     class Button : public WIDGET_PARENT {
     protected:
         template<typename MgrType_, bool vertical>
-        friend class Scrollbar;
+        friend
+        class Scrollbar;
 
         WIDGET_TYPEDEFS
         using PressedPred = bool (*)(const MgrType &, const Rect &, bool);
@@ -70,6 +71,15 @@ NS_BEGIN
     public:
         bool is_front = false;
 
+        struct ButtonStyle {
+            using ButtonType = Button<MgrType>;
+            ButtonType::PointRef size;
+            NumType outline_size = 1;
+            const Point *img_pos = nullptr;
+            ConstSchemeRef scheme = scheme_bright;
+            PressedPred pressed_pred = mouse_pressed;
+        };
+
 /**
  * \param pos From base class \c WidgetBase, the position kept by \c Button itself.
  * \param size The size of the button.
@@ -94,9 +104,24 @@ NS_BEGIN
             draw_back();
         }
 
+        Button(PointRef pos, const ButtonStyle &style, SDLSurfacePtr img) :
+                WidgetParent{pos},
+                size(style.size), outline_size(style.outline_size),
+                img(img, false),
+                scheme(style.scheme),
+                pressed_pred(style.pressed_pred) {
+            if (img != nullptr) {
+                if (style.img_pos == nullptr) {
+                    img_rel = {(size.x - img->w) / 2, (size.y - img->h) / 2};
+                } else this->img_rel = *style.img_pos;
+            }
+            draw_back();
+        }
+
         ~Button() override {
             delete surface;
         }
+
 
         bool to_front() {
             if (is_front) return false;
@@ -116,6 +141,8 @@ NS_BEGIN
             Point real = this->pos + rel;
             return {real.x, real.y, size.x, size.y};
         }
+
+        WIDGET_DELETES(Button)
 
         WIDGET_PROCESS override {
             result.set_type(WidgetResult::t_button);

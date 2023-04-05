@@ -30,7 +30,7 @@ NS_BEGIN
     class Scrollbar : public WidgetBase<MgrType> {
     protected:
         WIDGET_TYPEDEFS
-        using DragInput = long double (*)(const MgrType &, const Rect &, PointRef, bool);
+        using DragInput = long double (*)(const MgrType &, const Rect &, PointRef, const Rect &, bool);
         Point real_size, scroll_size, button_rel;
         Button<MgrType> *button;
         long double percentage;
@@ -70,8 +70,28 @@ NS_BEGIN
             scroll_size = {real_size.x - but_len, real_size.y};
         }
 
+        template<typename MgrType_=MgrType, typename KeyType>
+        static typename std::enable_if<std::is_same<MgrType_, MouseMgr>::value, long double>::type
+        mouse_scroll_input(const MouseMgr &mgr, const Rect &but_rect, PointRef, const Rect &bar_rect,
+                           bool but_is_front) {
+            if (bar_rect.contains(mgr.at(MouseMgr::pos)) && mgr.wheel_moved())
+                return mgr.wheel_rel.y / -100.0;
+            return 0;
+        }
+
+        template<typename MgrType_=MgrType, typename KeyType>
+        static typename std::enable_if<std::is_same<MgrType_, MouseAndKeyClickMgr<KeyType>>::value, long double>::type
+        mouse_scroll_input(const MouseAndKeyClickMgr<KeyType> &mgr, const Rect &but_rect, PointRef,
+                           const Rect &bar_rect,
+                           bool but_is_front) {
+            if (bar_rect.contains(mgr.mouse.at(MouseMgr::pos)) && mgr.mouse.wheel_moved())
+                return mgr.mouse.wheel_rel.y / -100.0;
+            return 0;
+        }
+
         IF_VERT_AND(static, long double, std::is_same<MgrType, MouseMgr>::value)
-        mouse_drag_input(const MouseMgr &mgr, const Rect &but_rect, PointRef size, bool but_is_front) {
+        mouse_drag_input(const MouseMgr &mgr, const Rect &but_rect, PointRef size, const Rect &bar_rect,
+                         bool but_is_front) {
             if (mgr.moved() && mgr.is_down(MouseMgr::left) &&
                 (but_rect.contains(mgr.at(MouseMgr::left)) || but_is_front)) {
                 return static_cast<long double>(mgr.at(MouseMgr::move).y) / size.y;
@@ -80,7 +100,8 @@ NS_BEGIN
         }
 
         IF_HORIZ_AND(static, long double, std::is_same<MgrType, MouseMgr>::value)
-        mouse_drag_input(const MouseMgr &mgr, const Rect &but_rect, PointRef size, bool but_is_front) {
+        mouse_drag_input(const MouseMgr &mgr, const Rect &but_rect, PointRef size, const Rect &bar_rect,
+                         bool but_is_front) {
             if (mgr.moved() && mgr.is_down(MouseMgr::left) &&
                 (but_rect.contains(mgr.at(MouseMgr::left)) || but_is_front)) {
                 return static_cast<long double>(mgr.at(MouseMgr::move).x) / size.x;
@@ -91,6 +112,7 @@ NS_BEGIN
         IF_VERT_AND_TMPL(static, long double, typename KeyType,
                          std::is_same<MgrType, MouseAndKeyClickMgr<KeyType>>::value)
         mouse_drag_input(const MouseAndKeyClickMgr<KeyType> &mgr, const Rect &but_rect, PointRef size,
+                         const Rect &bar_rect,
                          bool but_is_front) {
             if (mgr.mouse.moved() && mgr.mouse.is_down(MouseMgr::left) &&
                 (but_rect.contains(mgr.mouse.at(MouseMgr::left)) || but_is_front)) {
@@ -102,12 +124,22 @@ NS_BEGIN
         IF_HORIZ_AND_TMPL(static, long double, typename KeyType,
                           std::is_same<MgrType, MouseAndKeyClickMgr<KeyType>>::value)
         mouse_drag_input(const MouseAndKeyClickMgr<KeyType> &mgr, const Rect &but_rect, PointRef size,
+                         const Rect &bar_rect,
                          bool but_is_front) {
             if (mgr.mouse.moved() && mgr.mouse.is_down(MouseMgr::left) &&
                 (but_rect.contains(mgr.mouse.at(MouseMgr::left)) || but_is_front)) {
                 return static_cast<long double>(mgr.mouse.at(MouseMgr::move).x) / size.x;
             }
             return 0;
+        }
+
+        template<typename MgrType_ = MgrType>
+        static long double
+        mouse_drag_and_scroll_input(const MgrType &mgr, const Rect &but_rect, PointRef size,
+                                    const Rect &bar_rect,
+                                    bool but_is_front) {
+            return mouse_scroll_input(mgr, but_rect, size, bar_rect, but_is_front) +
+                   mouse_drag_input(mgr, but_rect, size, bar_rect, but_is_front);
         }
 
     public:
@@ -125,7 +157,7 @@ NS_BEGIN
         Scrollbar(PointRef pos, PointRef size, long double init_percentage = 0,
                   NumType outline_size = 1, SDLSurfacePtr background = nullptr,
                   const Point *background_pos = nullptr, ConstSchemeRef scheme = scheme_bright,
-                  DragInput drag_input = mouse_drag_input) :
+                  DragInput drag_input = mouse_drag_and_scroll_input) :
                 WidgetParent{pos}, real_size(size), percentage(init_percentage),
                 scheme(scheme), drag_input(drag_input) {
             set_button_pos();
@@ -158,9 +190,14 @@ NS_BEGIN
             delete button;
         }
 
+        WIDGET_DELETES(Scrollbar)
+
         WIDGET_PROCESS override {
             result.set_type(WidgetResult::t_scrollbar);
-            auto drag = drag_input(mgr, button->get_rect(button_rel + rel), scroll_size, button->is_front);
+            auto real = this->pos + rel;
+            auto drag = drag_input(mgr, button->get_rect(button_rel + rel), scroll_size,
+                                   {real.x, real.y, real_size.x, real_size.y},
+                                   button->is_front);
             if (drag != 0) {
                 percentage += drag;
                 if (percentage < 0) percentage = 0;

@@ -143,6 +143,8 @@ NS_BEGIN
             return true;
         }
 
+        WIDGET_DELETES(InputBox)
+
         WIDGET_PROCESS override {
             result.set_type(WidgetResult::t_input_box);
             Point real = this->pos + rel;

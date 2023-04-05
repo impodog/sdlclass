@@ -487,6 +487,7 @@ namespace SDLClass {
             if (independent) {
                 SDL_FreeSurface(surface);
                 surface = nullptr;
+                independent = false;
             }
         }
 
@@ -534,6 +535,28 @@ namespace SDLClass {
 
         void unlock() {
             SDL_UnlockSurface(surface);
+        }
+
+        SDLSurfacePtr merge_x(Surface &a_surface) {
+            Surface result = {SDL_CreateRGBSurface(0, surface->w + a_surface.surface->w,
+                                                   std::max(surface->h, a_surface.surface->h), 32,
+                                                   surface->format->Rmask,
+                                                   surface->format->Gmask, surface->format->Bmask,
+                                                   surface->format->Amask), false};
+            result.blit(surface, {0, 0});
+            result.blit(a_surface, {surface->w, 0});
+            return result.surface;
+        }
+
+        SDLSurfacePtr merge_y(Surface &a_surface) {
+            Surface result = {SDL_CreateRGBSurface(0, std::max(surface->w, a_surface.surface->w),
+                                                   surface->h + a_surface.surface->h, 32,
+                                                   surface->format->Rmask,
+                                                   surface->format->Gmask, surface->format->Bmask,
+                                                   surface->format->Amask), false};
+            result.blit(surface, {0, 0});
+            result.blit(a_surface, {0, surface->h});
+            return result.surface;
         }
 
         Uint32 get_color(const SDL_Color &color) {

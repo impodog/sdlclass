@@ -9,6 +9,8 @@
 #include <limits>
 #include <iostream>
 #include <vector>
+#include <map>
+#include <unordered_map>
 
 #define NS_BEGIN namespace SDLExt {
 #define NS_END }
@@ -34,9 +36,14 @@ using ConstSchemeRef = WidgetParent::ConstSchemeRef;
 #define WIDGET_TYPE(type)[[nodiscard]] constexpr WidgetResult::WidgetType get_type() const noexcept override { return type; }
 #define WIDGET_PROCESS void process(const Point &rel, const MgrType &mgr, WidgetResult &result)
 #define WIDGET_PRESENT void present(RendererPtr renderer, const Point &rel)
+#define WIDGET_DELETES(type) type(const type &) = delete;\
+type &operator=(type &&) = delete;                       \
+type &operator=(const type &) = delete;
 
 NS_BEGIN
     using namespace SDLClass;
+
+    auto &cout = std::cout;
 
     template<class NumType>
     struct Ok {

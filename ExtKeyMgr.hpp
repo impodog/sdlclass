@@ -10,14 +10,14 @@ using KeyMap = typename KeyMgr<KeyType>::KeyMap;
 
 #define MOUSE_BUTTON_TYPE decltype(SDL_Event().button.button)
 #define MOUSE_CLICK_MGR_PARENT KeyClickMgr<MOUSE_BUTTON_TYPE>
-#define MOUSE_KEYS std::initializer_list<MOUSE_BUTTON_TYPE>{0,1,2,3,4,5,6}
-#define MOUSE_KEYS_EXCEPT_0 std::initializer_list<MOUSE_BUTTON_TYPE>{1,2,3,4,5,6}
+#define MOUSE_KEYS std::initializer_list<MOUSE_BUTTON_TYPE>{0,1,2,3,4}
+#define MOUSE_KEYS_EXCEPT_0 std::initializer_list<MOUSE_BUTTON_TYPE>{1,2,3,4}
 
 #include "ExtBase.h"
 
 NS_BEGIN
 /*A simple manager for keys down/up from all ranges*/
-    template<typename KeyType_>
+    template<typename KeyType_=SDL_Keycode>
     class KeyMgr {
     protected:
         using KeyType = KeyType_;
@@ -76,7 +76,7 @@ NS_BEGIN
 
 /*Subclass of KeyMgr, but added records for key clicked
  * NOTICE : record() MUST be called before down() and up(); refresh() must be called after the key management*/
-    template<typename KeyType_>
+    template<typename KeyType_=SDL_Keycode>
     class KeyClickMgr : public KeyMgr<KeyType_> {
     protected:
         KEY_MGR_TYPEDEFS
@@ -146,8 +146,9 @@ NS_BEGIN
         using KeyMap = MgrParent::KeyMap;
         using ButtonType = MOUSE_BUTTON_TYPE;
         std::unordered_map<ButtonType, Point> position;
+        Point wheel_rel;
 
-        static const int pos = 0, left = 1, middle = 2, right = 3, scroll_up = 4, scroll_down = 5, move = 6;
+        static const int pos = 0, left = 1, middle = 2, right = 3, move = 4;
 
         MouseMgr() : MgrParent(MOUSE_KEYS) {
             for (auto key: MOUSE_KEYS)
@@ -156,6 +157,7 @@ NS_BEGIN
 
         void record() override {
             MgrParent::record();
+            wheel_rel.to0();
             for (auto &key: MOUSE_KEYS_EXCEPT_0)
                 position.at(key).to0();
         }
@@ -164,6 +166,10 @@ NS_BEGIN
             auto &prev = position.at(pos);
             position.at(move) = {button.x - prev.x, button.y - prev.y};
             prev = {button.x, button.y};
+        }
+
+        void wheel_motion(const SDL_MouseWheelEvent &wheel_event) noexcept {
+            wheel_rel = {wheel_event.x, wheel_event.y};
         }
 
         void down(const SDL_MouseButtonEvent &button) noexcept {
@@ -190,12 +196,21 @@ NS_BEGIN
             position[button.button] = VOID_POINT;
         }
 
+
         [[nodiscard]] bool unmoved() const noexcept {
             return position.at(move).is0();
         }
 
         [[nodiscard]] bool moved() const noexcept {
             return position.at(move).isn0();
+        }
+
+        [[nodiscard]] bool wheel_unmoved() const noexcept {
+            return wheel_rel.is0();
+        }
+
+        [[nodiscard]] bool wheel_moved() const noexcept {
+            return wheel_rel.isn0();
         }
 
         const Point &at(ButtonType button) const {

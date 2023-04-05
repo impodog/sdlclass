@@ -109,7 +109,10 @@
 				7,
 				8,
 				9,
-				10
+				10,
+				11,
+				12,
+				13
 			]
 		}
 	],
@@ -169,6 +172,21 @@
 		{
 			"backtrace" : 1,
 			"path" : "ExtWidgetScrollbar.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "ExtWidgetGenerate.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "ExtWidgetFrame.hpp",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "ExtWidgetWindow.hpp",
 			"sourceGroupIndex" : 1
 		}
 	],

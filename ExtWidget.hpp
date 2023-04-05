@@ -27,6 +27,9 @@ NS_BEGIN
 
         void free_results(bool same = false) {
             switch (type) {
+                case t_none:
+                case t_frame:
+                    break;
                 case t_button:
                     if (same)
                         result.button = {false, false};
@@ -45,8 +48,12 @@ NS_BEGIN
                     if (same)
                         result.scrollbar.percentage = -1;
                     break;
-                default:
-                    break;
+                case t_branch_page:
+                    if (same) {
+                        result.branch_page->key = nullptr;
+                        result.branch_page->page_res.clear();
+                    } else
+                        delete result.branch_page;
             }
         }
 
@@ -56,7 +63,9 @@ NS_BEGIN
             t_button,
             t_page,
             t_input_box,
-            t_scrollbar
+            t_scrollbar,
+            t_branch_page,
+            t_frame
         } type;
         union WidgetUnion {
             struct {
@@ -105,6 +114,14 @@ NS_BEGIN
             struct {
                 long double percentage;
             } scrollbar;
+
+            struct BranchPageResult {
+                const void *key = nullptr;
+                PageResults page_res;
+            } *branch_page;
+
+            struct {
+            } frame;
         } result;
 
         WidgetResult() : type(t_none), result({.none={}}) {}
@@ -143,6 +160,11 @@ NS_BEGIN
                     case t_scrollbar:
                         result = {.scrollbar = {-1}};
                         break;
+                    case t_branch_page:
+                        result = {.branch_page = new WidgetUnion::BranchPageResult()};
+                        break;
+                    case t_frame:
+                        break;
                 }
         }
     };
@@ -163,6 +185,12 @@ NS_BEGIN
         explicit WidgetBase(const Point &pos) : pos(pos) {}
 
         virtual ~WidgetBase() = default;
+
+        [[nodiscard]] constexpr const Point &view_pos() const noexcept {
+            return pos;
+        }
+
+        WIDGET_DELETES(WidgetBase)
 
 /* Processing the widget, called BEFORE present().
  Parameters:
