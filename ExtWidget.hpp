@@ -54,6 +54,11 @@ NS_BEGIN
                         result.branch_page->page_res.clear();
                     } else
                         delete result.branch_page;
+                    break;
+                case t_frame_array:
+                    if (same)
+                        result.frame_array.index = 0;
+                    break;
             }
         }
 
@@ -65,7 +70,8 @@ NS_BEGIN
             t_input_box,
             t_scrollbar,
             t_branch_page,
-            t_frame
+            t_frame,
+            t_frame_array
         } type;
         union WidgetUnion {
             struct {
@@ -122,6 +128,10 @@ NS_BEGIN
 
             struct {
             } frame;
+
+            struct {
+                size_t index;
+            } frame_array;
         } result;
 
         WidgetResult() : type(t_none), result({.none={}}) {}
@@ -165,6 +175,9 @@ NS_BEGIN
                         break;
                     case t_frame:
                         break;
+                    case t_frame_array:
+                        result = {.frame_array = {0}};
+                        break;
                 }
         }
     };
@@ -189,8 +202,6 @@ NS_BEGIN
         [[nodiscard]] constexpr const Point &view_pos() const noexcept {
             return pos;
         }
-
-        WIDGET_DELETES(WidgetBase)
 
 /* Processing the widget, called BEFORE present().
  Parameters:

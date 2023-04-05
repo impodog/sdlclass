@@ -126,7 +126,7 @@ NS_BEGIN
             draw_back();
         }
 
-        ~InputBox() {
+        ~InputBox() override {
             delete back;
             delete text;
         }

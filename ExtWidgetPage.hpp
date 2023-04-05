@@ -89,8 +89,8 @@ NS_BEGIN
         }
 
         BranchPage(PointRef pos, const std::vector<Button<MgrType> *> &keys,
-                   const std::vector<Page<MgrType> *> &values, Button<MgrType> *init_branch = nullptr):
-                   WidgetParent{pos}{
+                   const std::vector<Page<MgrType> *> &values, Button<MgrType> *init_branch = nullptr) :
+                WidgetParent{pos} {
             size_t size = keys.size();
             if (keys.empty())
                 throw std::out_of_range("BranchPage constructor received no available branches");
@@ -110,7 +110,7 @@ NS_BEGIN
                 branches.insert({*key_iter++, *value_iter++});
         }
 
-        ~BranchPage() {
+        ~BranchPage() override {
             for (auto &pair: branches) {
                 if (ind_button)
                     delete pair.first;

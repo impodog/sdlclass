@@ -185,7 +185,7 @@ NS_BEGIN
         }
 
 
-        ~Scrollbar() {
+        ~Scrollbar() override {
             delete back;
             delete button;
         }
