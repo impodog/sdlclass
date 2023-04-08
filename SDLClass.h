@@ -28,6 +28,18 @@ namespace SDLClass {
     using ConstSDLSurfacePtr = const SDL_Surface *;
     using Event = SDL_Event;
 
+    template<typename NumType>
+    struct FakePointType {
+        static_assert(std::is_arithmetic<NumType>::value, "FakePointType::NumType must be an arithmetic type");
+        NumType x, y;
+    };
+    template<typename NumType>
+    struct FakeRectType {
+        static_assert(std::is_arithmetic<NumType>::value, "FakeRectType::NumType must be an arithmetic type");
+        NumType x, y;
+        NumType w, h;
+    };
+
     template<typename SDLPointType>
     class BasicPoint : public SDLPointType {
     public:
@@ -95,6 +107,8 @@ namespace SDLClass {
         PointType operator-() const {
             return {-this->x, -this->y};
         }
+
+        [[nodiscard]] constexpr bool operator==(PointRef point) const = default;
 
         [[nodiscard]] NumType distance(PointRef point) const {
             return sqrt(pow(point.x - this->x, 2) + pow(point.y - this->y, 2));
@@ -176,7 +190,7 @@ namespace SDLClass {
 
         BasicRect() noexcept: SDLRectType{0, 0, 0, 0} { null = true; }
 
-        BasicRect(int x, int y, int w, int h) noexcept: SDLRectType{x, y, w, h} { null = false; }
+        BasicRect(NumType x, NumType y, NumType w, NumType h) noexcept: SDLRectType{x, y, w, h} { null = false; }
 
         explicit BasicRect(PointRef size) noexcept: SDLRectType{0, 0, size.x, size.y} { null = false; }
 

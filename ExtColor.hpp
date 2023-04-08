@@ -56,9 +56,9 @@ NS_BEGIN
         }
 
         Color &operator-() {
-            r = max_of(r) - r;
-            g = max_of(g) - g;
-            b = max_of(b) - b;
+            r = max_of(typeof r) - r;
+            g = max_of(typeof g) - g;
+            b = max_of(typeof b) - b;
             return *this;
         }
 

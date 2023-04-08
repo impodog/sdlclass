@@ -19,11 +19,10 @@
 #define DEFAULT_POINT {0, 0}
 #define VOID_POINT {-1, -1}
 
-#define sign(x) (x>0?1:x<0?-1:0)
-#define max_of(x) std::numeric_limits<typeof x>::max()
-#define min_of(x) std::numeric_limits<typeof x>::min()
-#define epsilon_of(x) std::numeric_limits<typeof x>::epsilon()
-#define lim_of(x, lim) std::numeric_limits<typeof x>::lim()
+#define max_of(x) std::numeric_limits<x>::max()
+#define min_of(x) std::numeric_limits<x>::min()
+#define epsilon_of(x) std::numeric_limits<x>::epsilon()
+#define lim_of(x, lim) std::numeric_limits<x>::lim()
 
 #define WIDGET_TEMPLATE(additional...) template<typename MgrType additional>
 #define WIDGET_PARENT WidgetBase<MgrType>
@@ -44,7 +43,59 @@ type &operator=(const type &) = delete;
 NS_BEGIN
     using namespace SDLClass;
 
-    auto &cout = std::cout;
+    template<class NumType>
+    constexpr typename std::enable_if<std::is_floating_point<NumType>::value, bool>::type
+    operator==(NumType x, NumType y) {
+        return x - y <= epsilon_of(NumType);
+    }
+
+    template<class NumType>
+    constexpr typename std::enable_if<std::is_signed<NumType>::value, NumType>::type
+    sign(NumType x) noexcept {
+        return x > 0 ? 1 : x < 0 ? -1 : 0;
+    }
+
+    template<class NumType>
+    constexpr typename std::enable_if<std::is_unsigned<NumType>::value, NumType>::type
+    sign(NumType x) noexcept {
+        return x != 0 ? 1 : 0;
+    }
+
+    template<class NumType>
+    constexpr typename std::enable_if<std::is_signed<NumType>::value, NumType>::type
+    nsign(NumType x) noexcept {
+        return x > 0 ? -1 : x < 0 ? 1 : 0;
+    }
+
+    template<class NumType>
+    constexpr typename std::enable_if<std::is_unsigned<NumType>::value, typename std::make_signed<NumType>::type>::type
+    nsign(NumType x) noexcept {
+        return x != 0 ? -1 : 0;
+    }
+
+    template<class NumType>
+    constexpr typename std::enable_if<std::is_signed<NumType>::value, NumType>::type
+    sign(NumType x, NumType y) noexcept {
+        return x > 0 ? sign(y) : x < 0 ? nsign(y) : 0;
+    }
+
+    template<class NumType>
+    constexpr typename std::enable_if<std::is_unsigned<NumType>::value, NumType>::type
+    sign(NumType x, NumType y) noexcept {
+        return x != 0 && y != 0 ? 1 : 0;
+    }
+
+    template<class NumType>
+    constexpr typename std::enable_if<std::is_signed<NumType>::value, NumType>::type
+    nsign(NumType x, NumType y) noexcept {
+        return x > 0 ? nsign(y) : x < 0 ? sign(y) : 0;
+    }
+
+    template<class NumType>
+    constexpr typename std::enable_if<std::is_unsigned<NumType>::value, typename std::make_signed<NumType>::type>::type
+    nsign(NumType x, NumType y) noexcept {
+        return x != 0 && y != 0 ? -1 : 0;
+    }
 
     template<class NumType>
     struct Ok {

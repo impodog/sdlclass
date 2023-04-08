@@ -11,7 +11,7 @@
 NS_BEGIN
 /*A Page of contents that can manage every component repeatedly*/
     WIDGET_TEMPLATE()
-    class Page : WidgetBase<MgrType> {
+    class Page final : WidgetBase<MgrType> {
     protected:
         WIDGET_TYPEDEFS
         using ElementType = WidgetBase<MgrType>;

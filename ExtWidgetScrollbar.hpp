@@ -27,7 +27,7 @@ spec typename std::enable_if<!vertical_ && cond, typen>::type
 NS_BEGIN
 /*A bar, horizontal or vertical, with a slide button on it.*/
     WIDGET_TEMPLATE(=MouseMgr, bool vertical = true)
-    class Scrollbar : public WidgetBase<MgrType> {
+    class Scrollbar final : public WidgetBase<MgrType> {
     protected:
         WIDGET_TYPEDEFS
         using DragInput = long double (*)(const MgrType &, const Rect &, PointRef, const Rect &, bool);

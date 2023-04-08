@@ -14,7 +14,7 @@
 NS_BEGIN
     WIDGET_TEMPLATE(=MouseAndKeyClickMgr<>)
 
-    class InputBox : public WidgetBase<MgrType> {
+    class InputBox final : public WidgetBase<MgrType> {
     protected:
         WIDGET_TYPEDEFS
         using OnClickPred = bool (*)(const MgrType &, const Rect &, bool);

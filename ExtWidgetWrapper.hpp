@@ -5,13 +5,23 @@
 #ifndef SDLCLASS_TEST_EXTWIDGETWRAPPER_HPP
 #define SDLCLASS_TEST_EXTWIDGETWRAPPER_HPP
 
+
 #include "ExtBase.h"
 #include "ExtWidget.hpp"
 
 NS_BEGIN
-// This simply wraps anything that has member function copy_to(RendererPtr, const Point &)
+#if __cplusplus >= 202002L
+    template<typename WrapType>
+    concept SupportsCopyTo = requires {
+        WrapType().copy_to(RendererPtr(), Point());
+    };
+
+    WIDGET_TEMPLATE(, SupportsCopyTo WrapType)
+#else
     WIDGET_TEMPLATE(, typename WrapType)
-    class Wrapper : public WidgetBase<MgrType> {
+#endif
+// This simply wraps anything that has member function copy_to(RendererPtr, const Point &)
+    class Wrapper final : public WidgetBase<MgrType> {
     protected:
         WIDGET_TYPEDEFS
         WrapType &obj;

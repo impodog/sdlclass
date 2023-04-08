@@ -13,7 +13,7 @@ typename std::enable_if<draggable_, ret_type>::type
 
 NS_BEGIN
     WIDGET_TEMPLATE(=MouseMgr)
-    class Button : public WIDGET_PARENT {
+    class Button final : public WIDGET_PARENT {
     protected:
         template<typename MgrType_, bool vertical>
         friend

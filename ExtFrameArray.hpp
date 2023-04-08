@@ -10,12 +10,13 @@
 NS_BEGIN
 
     /*An array of frames played continuously*/
-    class FrameArray {
+    class FrameArray final {
     protected:
         using PointRef = const Point &;
         using FrameVector = std::vector<Surface *>;
         FrameVector *frames;
         size_t counter = 0, delay, index;
+        int times = -1;
         bool independent, paused = false;
 
         explicit FrameArray(FrameVector *frames, size_t delay, size_t index) :
@@ -61,13 +62,26 @@ NS_BEGIN
         explicit FrameArray(const FrameVector &frames, size_t delay = 1, size_t index = 0) :
                 frames(new FrameVector(frames)), delay(delay), index(index), independent(true) {}
 
-        constexpr bool next() noexcept {
-            return (counter++ % delay) == 0;
+        bool next() noexcept {
+            if ((counter++ % delay) == 0) {
+                if (times == 0) return false;
+                else if (times < 0) return true;
+                else return --times;
+            }
+            return false;
         }
 
-        void copy_to(RendererPtr renderer, PointRef pos) {
-            if (!paused && next())index = (index + 1) % frames->size();
+        /*Copy the current frame and tick once, return if the array hit the end of play times*/
+        bool copy_to(RendererPtr renderer, PointRef pos) {
+            bool next_ok = false;
+            if (!paused && (next_ok = next())) index = (index + 1) % frames->size();
             frames->at(index)->copy_to(renderer, pos);
+            return next_ok;
+        }
+
+        /*Set the play times, if -1, then play endlessly*/
+        void set_times(int play_times = -1) {
+            times = play_times;
         }
 
         void pause() {
