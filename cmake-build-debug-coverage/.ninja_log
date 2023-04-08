@@ -1,7 +1,0 @@
-# ninja log v5
-1	80	7023882984261875	build.ninja	bc6e32e357bf1b8c
-0	8	0	clean	f8c5ee09a91659a1
-2061	2455	7023770521924465	libsdlclass.a	957c97f7bd0f3ef3
-5	2007	7023770517374459	CMakeFiles/sdlclass_test.dir/SDLClass.cpp.obj	c46aa48fda88e961
-2	2061	7023770517942108	CMakeFiles/sdlclass.dir/SDLClass.cpp.obj	2715d1ea509b0e72
-2008	2486	7023770522173780	sdlclass_test.exe	6e3a013f68575054

@@ -1,4 +1,0 @@
-D:/workspace/Cpp/Tool/sdlclass/cmake-build-debug-coverage/CMakeFiles/sdlclass.dir
-D:/workspace/Cpp/Tool/sdlclass/cmake-build-debug-coverage/CMakeFiles/sdlclass_test.dir
-D:/workspace/Cpp/Tool/sdlclass/cmake-build-debug-coverage/CMakeFiles/edit_cache.dir
-D:/workspace/Cpp/Tool/sdlclass/cmake-build-debug-coverage/CMakeFiles/rebuild_cache.dir

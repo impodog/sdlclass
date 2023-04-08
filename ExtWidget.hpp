@@ -28,7 +28,7 @@ NS_BEGIN
         void free_results(bool same = false) {
             switch (type) {
                 case t_none:
-                case t_frame:
+                case t_wrapper:
                     break;
                 case t_button:
                     if (same)
@@ -51,13 +51,9 @@ NS_BEGIN
                 case t_branch_page:
                     if (same) {
                         result.branch_page->key = nullptr;
-                        result.branch_page->page_res.clear();
+                        delete result.branch_page->sub_res;
                     } else
                         delete result.branch_page;
-                    break;
-                case t_frame_array:
-                    if (same)
-                        result.frame_array.index = 0;
                     break;
             }
         }
@@ -70,8 +66,7 @@ NS_BEGIN
             t_input_box,
             t_scrollbar,
             t_branch_page,
-            t_frame,
-            t_frame_array
+            t_wrapper
         } type;
         union WidgetUnion {
             struct {
@@ -123,15 +118,11 @@ NS_BEGIN
 
             struct BranchPageResult {
                 const void *key = nullptr;
-                PageResults page_res;
+                WidgetResult *sub_res = nullptr;
             } *branch_page;
 
             struct {
-            } frame;
-
-            struct {
-                size_t index;
-            } frame_array;
+            } wrapper;
         } result;
 
         WidgetResult() : type(t_none), result({.none={}}) {}
@@ -157,6 +148,7 @@ NS_BEGIN
             if (!same)
                 switch (type) {
                     case t_none:
+                    case t_wrapper:
                         break;
                     case t_button:
                         result = {.button = {false, false}};
@@ -172,11 +164,6 @@ NS_BEGIN
                         break;
                     case t_branch_page:
                         result = {.branch_page = new WidgetUnion::BranchPageResult()};
-                        break;
-                    case t_frame:
-                        break;
-                    case t_frame_array:
-                        result = {.frame_array = {0}};
                         break;
                 }
         }

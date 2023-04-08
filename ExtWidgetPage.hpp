@@ -61,11 +61,13 @@ NS_BEGIN
     template<typename KeyType = SDL_Keycode>
     using MouseAndKeyPage = Page<MouseAndKeyClickMgr<KeyType>>;
 
-    WIDGET_TEMPLATE()
+    WIDGET_TEMPLATE(, typename ElementType)
     class BranchPage : WidgetBase<MgrType> {
     protected:
-        WIDGET_TYPEDEFS
-        using BranchMap = std::unordered_map<Button<MgrType> *, Page<MgrType> *>;
+        WIDGET_TYPEDEFS;
+        static_assert(std::is_base_of<WidgetParent, ElementType>::value,
+                      "Element type must have the same WidgetBase parent with BranchPage");
+        using BranchMap = std::unordered_map<Button<MgrType> *, ElementType *>;
         BranchMap branches;
         Button<MgrType> *cur_branch;
         bool ind_button = false, ind_page = false;
@@ -89,7 +91,7 @@ NS_BEGIN
         }
 
         BranchPage(PointRef pos, const std::vector<Button<MgrType> *> &keys,
-                   const std::vector<Page<MgrType> *> &values, Button<MgrType> *init_branch = nullptr) :
+                   const std::vector<ElementType *> &values, Button<MgrType> *init_branch = nullptr) :
                 WidgetParent{pos} {
             size_t size = keys.size();
             if (keys.empty())
@@ -119,7 +121,7 @@ NS_BEGIN
             }
         }
 
-        void add_branch(const std::pair<Button<MgrType> *, Page<MgrType> *> &pair) {
+        void add_branch(const std::pair<Button<MgrType> *, ElementType *> &pair) {
             branches.insert(pair);
         }
 
@@ -135,16 +137,15 @@ NS_BEGIN
 
         WIDGET_PROCESS override {
             result.set_type(WidgetResult::t_branch_page);
-            WidgetResult sub_result;
+            auto sub_result = new WidgetResult();
             for (auto &pair: branches) {
-                pair.first->process(rel, mgr, sub_result);
-                if (sub_result.result.button.released)
+                pair.first->process(rel, mgr, *sub_result);
+                if (sub_result->result.button.released)
                     cur_branch = pair.first;
             }
             result.result.branch_page->key = cur_branch;
-            branches.at(cur_branch)->process(rel, mgr, sub_result);
-            result.result.branch_page->page_res = *sub_result.result.page;
-            sub_result.result.page->clear();
+            branches.at(cur_branch)->process(rel, mgr, *sub_result);
+            result.result.branch_page->sub_res = sub_result;
         }
 
         WIDGET_PRESENT override {

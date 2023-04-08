@@ -5,7 +5,7 @@
 #ifndef SDLCLASS_SDLEXT_H
 #define SDLCLASS_SDLEXT_H
 
-#define SDL_EXT_VERSION "v0.3.0"
+#define SDL_EXT_VERSION "v0.3.1"
 
 #include "ExtColor.hpp"
 #include "ExtKeyMgr.hpp"
@@ -14,8 +14,9 @@
 #include "ExtWidgetPage.hpp"
 #include "ExtWidgetInputBox.hpp"
 #include "ExtWidgetScrollbar.hpp"
-#include "ExtWidgetFrame.hpp"
+#include "ExtWidgetWrapper.hpp"
 #include "ExtWidgetGenerate.hpp"
+#include "ExtFrameArray.hpp"
 
 #ifdef UNDEF_MACROS
 #undef UNDEF_MACROS
