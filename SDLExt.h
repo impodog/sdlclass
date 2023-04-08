@@ -5,7 +5,7 @@
 #ifndef SDLCLASS_SDLEXT_H
 #define SDLCLASS_SDLEXT_H
 
-#define SDL_EXT_VERSION "v0.3.1"
+#define SDL_EXT_VERSION "v0.3.2"
 
 #include "ExtColor.hpp"
 #include "ExtKeyMgr.hpp"

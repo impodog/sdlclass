@@ -11,6 +11,7 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <filesystem>
 
 #define NS_BEGIN namespace SDLExt {
 #define NS_END }

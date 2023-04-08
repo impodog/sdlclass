@@ -42,7 +42,22 @@ NS_BEGIN
             return FrameArray{*src.frames, src.delay, src.index};
         }
 
-        /*The frames ARE managed in FrameArray(deepcopy)*/
+        /*The frames ARE managed in FrameArray(creation)*/
+        static FrameArray
+        from_dir(const std::filesystem::path &src, const std::string &suffix, size_t delay = 0, size_t index = 0) {
+            FrameVector frames;
+            for (const auto &entry: std::filesystem::directory_iterator(src)) {
+                if (entry.is_regular_file()) {
+                    auto path = entry.path().string();
+                    if (path.ends_with(suffix))
+                        frames.push_back(new Surface(entry.path().string()));
+                }
+
+            }
+            return FrameArray{frames, delay, index};
+        }
+
+        /*The frames ARE managed in FrameArray(creation)*/
         explicit FrameArray(const FrameVector &frames, size_t delay = 1, size_t index = 0) :
                 frames(new FrameVector(frames)), delay(delay), index(index), independent(true) {}
 
