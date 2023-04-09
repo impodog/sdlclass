@@ -63,9 +63,9 @@ NS_BEGIN
 
         constexpr bool is_up(const KeyType &key) const noexcept {
             try {
-                return key_down[key];
+                return !key_down.at(key);
             } catch (const std::out_of_range &) {
-                return false;
+                return true;
             }
         }
 
@@ -82,7 +82,7 @@ NS_BEGIN
         KEY_MGR_TYPEDEFS
         KeyMap key_prev, key_click, key_release;
     public:
-        KeyType cur_key;
+        KeyType cur_click;
 
         explicit KeyClickMgr(const std::vector<KeyType> &init) : KeyMgr<KeyType>(init) {
             for (const auto &key: init) {
@@ -101,7 +101,7 @@ NS_BEGIN
                 auto &k_d = this->key_down.at(key.first);
                 if (k_d ^ key.second) {
                     if (k_d)
-                        cur_key = key.first;
+                        cur_click = key.first;
                     key_click.at(key.first) = k_d;
                     key_release.at(key.first) = !k_d;
                     return;
@@ -110,14 +110,14 @@ NS_BEGIN
                     key_release.at(key.first) = false;
                 }
             }
-            cur_key = 0;
+            cur_click = 0;
         }
 
         virtual void refresh_unchecked() noexcept {
             for (const auto &key: key_prev) {
                 auto &k_d = this->key_down[key.first];
                 if (k_d ^ key.second) {
-                    cur_key = key.first;
+                    cur_click = key.first;
                     key_click[key.first] = k_d;
                     key_release[key.first] = !k_d;
                     return;
@@ -135,6 +135,18 @@ NS_BEGIN
 
         bool is_click_unchecked(KeyType key) const noexcept {
             return key_click[key];
+        }
+
+        bool is_release(KeyType key) const {
+            try {
+                return key_release.at(key);
+            } catch (const std::out_of_range &) {
+                return true;
+            }
+        }
+
+        bool is_release_unchecked(KeyType key) const noexcept {
+            return key_release[key];
         }
     };
 

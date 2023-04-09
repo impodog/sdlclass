@@ -75,7 +75,7 @@ NS_BEGIN
 
         static typename std::enable_if<std::is_same<MgrType, MouseAndKeyClickMgr<>>::value, bool>::type
         keyboard_char_input(const MouseAndKeyClickMgr<> &mgr, std::string &input) {
-            switch (mgr.cur_key) {
+            switch (mgr.cur_click) {
                 case 0:
                     break;
                 case '\b':
@@ -85,8 +85,8 @@ NS_BEGIN
                 case '\n':
                     return true;
                 default:
-                    if (SDL_isprint(mgr.cur_key))
-                        input.push_back((char) mgr.cur_key);
+                    if (SDL_isprint(mgr.cur_click))
+                        input.push_back((char) mgr.cur_click);
                     break;
             }
             return false;
@@ -154,7 +154,7 @@ NS_BEGIN
             }
             if (is_front) {
                 result.result.input_box.end = char_input(mgr, input);
-                if (mgr.cur_key != 0)
+                if (mgr.cur_click != 0)
                     rerender_text();
             }
             if (input.empty())

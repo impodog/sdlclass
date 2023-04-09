@@ -16,6 +16,8 @@
 
 #define IF_RECT_TYPE(rect_type, return_type) template<class SDLRectPointType = SDLRectType>\
     [[nodiscard]] constexpr typename std::enable_if<std::is_same<SDLRectPointType, rect_type>::value, return_type>::type
+#define NOT_ANY_RECT_TYPE(return_type) template<class SDLRectPointType = SDLRectType> \
+    [[nodiscard]] constexpr typename std::enable_if<!std::is_same<SDLRectPointType, SDL_Rect &&>::value && !std::is_same<SDLRectPointType, SDL_Rect>::value, return_type>::type
 
 namespace SDLClass {
 
@@ -40,7 +42,24 @@ namespace SDLClass {
         NumType w, h;
     };
 
+#if __cplusplus >= 202002L
     template<typename SDLPointType>
+    concept HasXY_ = std::is_arithmetic<
+    typeof SDLPointType::x
+    >
+    ::value &&
+            std::is_same<
+    typeof SDLPointType::x,
+    typeof SDLPointType::y
+    >::value;
+#define HasXY HasXY_
+#define TypeHasXY(T) HasXY<T>
+#else
+#define HasXY typename
+#define TypeHasXY(T) true
+#endif
+
+    template<HasXY SDLPointType>
     class BasicPoint : public SDLPointType {
     public:
         using NumType = typeof
@@ -149,30 +168,55 @@ namespace SDLClass {
             this->y = -this->y;
         }
 
-        template<class NumCastType>
-        operator BasicPoint<NumCastType>() { // NOLINT(google-explicit-constructor)
-            return {static_cast<NumCastType>(this->x), static_cast<NumCastType>(this->y)};
-        }
-
-        operator SDL_Point() { // NOLINT(google-explicit-constructor)
+        constexpr operator SDL_Point() const noexcept { // NOLINT(google-explicit-constructor)
             return {static_cast<int>(this->x), static_cast<int>(this->y)};
         }
 
-        operator SDL_FPoint() { // NOLINT(google-explicit-constructor)
+        constexpr operator SDL_FPoint() const noexcept { // NOLINT(google-explicit-constructor)
             return {static_cast<float>(this->x), static_cast<float>(this->y)};
+        }
+
+        template<HasXY NumCastType>
+        constexpr operator BasicPoint<NumCastType>() const noexcept { // NOLINT(google-explicit-constructor)
+            return {static_cast<typeof NumCastType::x > (this->x), static_cast<typeof NumCastType::x > (this->y)};
         }
     };
 
     using Point = BasicPoint<SDL_Point>;
     using FPoint = BasicPoint<SDL_FPoint>;
+    template<typename NumType>
+    // A template Point that has the same functionality as any other Point
+    struct ArithPoint : BasicPoint<FakePointType<NumType>> {
+        static_assert(std::is_arithmetic<NumType>::value, "ArithPoint NumType must an arithmetic type");
+    };
 
-    template<class SDLPointType>
+    template<HasXY SDLPointType>
     std::ostream &operator<<(std::ostream &ostream, const BasicPoint<SDLPointType> &point) {
         ostream << "(" << point.x << "," << point.y << ")";
         return ostream;
     }
 
-    template<typename SDLRectType, typename SDLPointType>
+#if __cplusplus >= 202002L
+    template<typename SDLRectType>
+    concept HasXYWH_ = TypeHasXY(SDLRectType) && std::is_same<
+    typeof SDLRectType::x,
+    typeof SDLRectType::w
+    >
+    ::value &&
+            std::is_same<
+    typeof SDLRectType::w,
+    typeof SDLRectType::h
+    >::value;
+
+#define HasXYWH HasXYWH_
+#define TypeHasXYWH(T) HasXYWH<T>
+
+#else
+#define HasXYWH typename
+#define typeHasXYWH(T) true
+#endif
+
+    template<HasXYWH SDLRectType, HasXY SDLPointType>
     class BasicRect : public SDLRectType {
     protected:
         using NumType = typename std::enable_if<std::is_same< typeof
@@ -267,6 +311,11 @@ namespace SDLClass {
             return SDL_FRectEmpty(this);
         }
 
+        NOT_ANY_RECT_TYPE(bool)
+        empty() const {
+            return this->w == 0 || this->h == 0;
+        }
+
         IF_RECT_TYPE(SDL_Rect, bool)
         contains(const Point &point) const {
             return SDL_PointInRect(&point, this);
@@ -276,6 +325,13 @@ namespace SDLClass {
         contains(const FPoint &point) const {
             return SDL_PointInFRect(&point, this);
         }
+
+        NOT_ANY_RECT_TYPE(bool)
+        contains(const SDLPointType &point) const {
+            return this->x <= point.x && point.x <= this->x + this->w &&
+                   this->y <= point.y && point.y <= this->y + this->h;
+        }
+
 
         [[nodiscard]] constexpr bool positive() const {
             return this->w > 0 && this->h > 0;
@@ -351,30 +407,39 @@ namespace SDLClass {
             return expand(1 / m, center());
         }
 
-        constexpr bool operator==(RectRef rect) const {
+        constexpr bool operator==(RectRef rect) const noexcept {
             return SDL_RectEquals(this, rect);
         }
 
-        constexpr operator const SDLRectType *() const { // NOLINT(google-explicit-constructor)
+        constexpr operator const SDLRectType *() const noexcept { // NOLINT(google-explicit-constructor)
             return null ? nullptr : this;
         }
 
-        operator SDLRectType *() { // NOLINT(google-explicit-constructor)
+        constexpr operator SDLRectType *() noexcept { // NOLINT(google-explicit-constructor)
             return null ? nullptr : this;
         }
 
-        operator SDL_Rect() { // NOLINT(google-explicit-constructor)
+        constexpr operator SDL_Rect() const noexcept { // NOLINT(google-explicit-constructor)
             return {static_cast<int>(this->x), static_cast<int>(this->y),
                     static_cast<int>(this->w), static_cast<int>(this->h)};
         }
 
-        operator SDL_FRect() { // NOLINT(google-explicit-constructor)
+        constexpr operator SDL_FRect() const noexcept { // NOLINT(google-explicit-constructor)
             return {static_cast<float>(this->x), static_cast<float>(this->y),
                     static_cast<float>(this->w), static_cast<float>(this->h)};
         }
+
+        template<HasXYWH SDLRectType_, HasXY SDLPointType_>
+        constexpr operator BasicRect<SDLRectType_, SDLPointType_>()
+        const noexcept { // NOLINT(google-explicit-constructor)
+            using NumType_ = typeof
+            BasicRect<SDLRectType_, SDLPointType_>::x;
+            return (static_cast<NumType>(this->x), static_cast<NumType>(this->y),
+                    static_cast<NumType>(this->w), static_cast<NumType>(this->h));
+        }
     };
 
-    template<class SDLRectType, class SDLPointType>
+    template<HasXYWH SDLRectType, HasXY SDLPointType>
     std::ostream &operator<<(std::ostream &ostream, const BasicRect<SDLRectType, SDLPointType> &rect) {
         ostream << "(" << rect.x << "," << rect.y << "," << rect.w << "," << rect.h << ")";
         return ostream;
@@ -382,6 +447,11 @@ namespace SDLClass {
 
     using Rect = BasicRect<SDL_Rect, SDL_Point>;
     using FRect = BasicRect<SDL_FRect, SDL_FPoint>;
+
+    template<typename NumType>
+    struct ArithRect : BasicRect<FakeRectType<NumType>, FakePointType<NumType>> {
+        static_assert(std::is_arithmetic<NumType>::value, "ArithRect NumType must an arithmetic type");
+    };
 
     class Texture {
     protected:
@@ -685,6 +755,7 @@ namespace SDLClass {
             return *new_font;
         }
     };
+
 }
 
 #undef IF_RECT_TYPE
