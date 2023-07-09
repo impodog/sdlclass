@@ -41,9 +41,7 @@ NS_BEGIN
         void down(const KeyType &key) noexcept {
             try {
                 key_down.at(key) = true;
-            } catch (const std::out_of_range &) {
-                key_down.insert({key, true});
-            }
+            } catch (const std::out_of_range &) {}
         }
 
         void up_unchecked(const KeyType &key) noexcept {
@@ -53,9 +51,7 @@ NS_BEGIN
         void up(const KeyType &key) noexcept {
             try {
                 key_down.at(key) = false;
-            } catch (const std::out_of_range &) {
-                key_down.insert({key, false});
-            }
+            } catch (const std::out_of_range &) {}
         }
 
         constexpr bool is_down(const KeyType &key) const noexcept {
