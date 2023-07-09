@@ -105,7 +105,7 @@ NS_BEGIN
  * \param background_pos the pointer of position of the background(if usable). If NULL, then the background will be shown at the center. Defaults to \c nullptr
  * \param scheme the scheme that the InputBox uses. Defaults to scheme_bright
  * \param on_click_pred this is a function that returns true when a press change is detected. Defaults to \c mouse_on_click
- * \param char_input this is a function that pushes or pops the input char according to key activities. Defaults to \c keyboard_char_input*/
+ * \param char_input this is a function that pushes or pops the input char according to key activities. Defaults to \c keyboard_char_input */
         InputBox(PointRef pos, PointRef size, Font &font, const Color &font_color, NumType outline_size = 1,
                  std::string default_input = {}, const Point *input_pos = nullptr,
                  SDLSurfacePtr background = nullptr, const Point *background_pos = nullptr,

@@ -13,6 +13,8 @@
 #include <map>
 #include <unordered_map>
 #include <filesystem>
+#include <functional>
+#include <ranges>
 #include "SDL2_rotozoom.h"
 
 #define NS_BEGIN namespace SDLExt {
