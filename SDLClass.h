@@ -22,7 +22,7 @@
 namespace SDLClass {
 
     using WindowPtr = SDL_Window *;
-    using RendererPtr = SDL_Renderer *;
+    using SDLRendererPtr = SDL_Renderer *;
     using FontPtr = TTF_Font *;
     using SDLTexturePtr = SDL_Texture *;
     using SDLSurfacePtr = SDL_Surface *;
@@ -64,10 +64,11 @@ namespace SDLClass {
     public:
         using NumType = typeof
         SDLPointType::x;
+        static_assert(std::is_arithmetic<NumType>::value, "BasicPoint number type must be arithmetic");
         using PointType = BasicPoint<SDLPointType>;
         using PointRef = const PointType &;
 
-        BasicPoint() : SDLPointType{0, 0} {};
+        BasicPoint() noexcept: SDLPointType{0, 0} {};
 
         BasicPoint(NumType x, NumType y) noexcept {
             this->x = x;
@@ -79,91 +80,103 @@ namespace SDLClass {
             this->y = point.y;
         }
 
-        PointType operator+(PointRef point) const {
+        PointType operator+(PointRef point) const noexcept {
             return {this->x + point.x, this->y + point.y};
         }
 
-        PointType operator-(PointRef point) const {
+        PointType operator-(PointRef point) const noexcept {
             return {this->x - point.x, this->y - point.y};
         }
 
-        PointType operator*(NumType m) const {
+        PointType operator*(NumType m) const noexcept {
             return {this->x * m, this->y * m};
         }
 
-        PointType operator/(NumType m) const {
+        PointType operator/(NumType m) const noexcept {
             return {this->x / m, this->y / m};
         }
 
-        PointType &operator+=(PointRef point) {
+        PointType &operator+=(PointRef point) noexcept {
             this->x += point.x;
             this->y += point.y;
             return *this;
         }
 
-        PointType &operator-=(PointRef point) {
+        PointType &operator-=(PointRef point) noexcept {
             this->x -= point.x;
             this->y -= point.y;
             return *this;
         }
 
-        PointType &operator*=(NumType m) {
+        PointType &operator*=(NumType m) noexcept {
             this->x *= m;
             this->y *= m;
             return *this;
         }
 
-        PointType &operator/=(NumType m) {
-            this->x *= m;
-            this->y *= m;
+        PointType &operator/=(NumType m) noexcept {
+            this->x /= m;
+            this->y /= m;
             return *this;
         }
 
-        [[nodiscard]] constexpr NumType size() const {
+        [[nodiscard]] constexpr NumType size() const noexcept {
             return this->x * this->y;
         }
 
-        PointType operator-() const {
+        PointType operator-() const noexcept {
             return {-this->x, -this->y};
         }
 
-        [[nodiscard]] constexpr bool operator==(PointRef point) const = default;
+        [[nodiscard]] constexpr bool operator==(PointRef point) const noexcept = default;
 
-        [[nodiscard]] NumType distance(PointRef point) const {
+        [[nodiscard]] constexpr NumType scalar_product(PointRef point) const noexcept {
+            return this->x * point.x + this->y * point.y;
+        }
+
+        [[nodiscard]] constexpr NumType vector_product(PointRef point) const noexcept {
+            return this->x * point.y - this->y * point.x;
+        }
+
+        [[nodiscard]] NumType distance(PointRef point) const noexcept {
             return sqrt(pow(point.x - this->x, 2) + pow(point.y - this->y, 2));
         }
 
-        [[nodiscard]] constexpr bool positive() const {
+        [[nodiscard]] BasicPoint<SDL_Point> to_IPoint() const noexcept {
+            return {static_cast<int>(this->x), static_cast<int>(this->y)};
+        }
+
+        [[nodiscard]] constexpr bool positive() const noexcept {
             return this->x > 0 && this->y > 0;
         }
 
-        [[nodiscard]] constexpr bool negative() const {
+        [[nodiscard]] constexpr bool negative() const noexcept {
             return this->x < 0 && this->y < 0;
         }
 
-        [[nodiscard]] constexpr bool is0() const {
+        [[nodiscard]] constexpr bool is0() const noexcept {
             return this->x == 0 && this->y == 0;
         }
 
-        [[nodiscard]] constexpr bool isn0() const {
+        [[nodiscard]] constexpr bool isn0() const noexcept {
             return this->x != 0 || this->y != 0;
         }
 
-        void to_positive() {
+        void to_positive() noexcept {
             this->x = abs(this->x);
             this->y = abs(this->y);
         }
 
-        void to_negative() {
+        void to_negative() noexcept {
             this->x = -abs(this->x);
             this->y = -abs(this->y);
         }
 
-        void to0() {
+        void to0() noexcept {
             this->x = this->y = 0;
         }
 
-        void invert() {
+        void invert() noexcept {
             this->x = -this->x;
             this->y = -this->y;
         }
@@ -185,10 +198,8 @@ namespace SDLClass {
     using Point = BasicPoint<SDL_Point>;
     using FPoint = BasicPoint<SDL_FPoint>;
     template<typename NumType>
-    // A template Point that has the same functionality as any other Point
-    struct ArithPoint : BasicPoint<FakePointType<NumType>> {
-        static_assert(std::is_arithmetic<NumType>::value, "ArithPoint NumType must an arithmetic type");
-    };
+        // A template Point that has the same functionality as any other Point
+    using ArithPoint = BasicPoint<FakePointType<NumType>>;
 
     template<HasXY SDLPointType>
     std::ostream &operator<<(std::ostream &ostream, const BasicPoint<SDLPointType> &point) {
@@ -225,135 +236,146 @@ namespace SDLClass {
         >::value,
         typeof SDLRectType::x
         >::type;
+        static_assert(std::is_arithmetic<NumType>::value, "BasicRect number type must be arithmetic");
         using PointType = BasicPoint<SDLPointType>;
         using PointRef = typename PointType::PointRef;
         using RectType = BasicRect<SDLRectType, SDLPointType>;
         using RectRef = const RectType &;
     public:
-        bool null;
 
-        BasicRect() noexcept: SDLRectType{0, 0, 0, 0} { null = true; }
+        BasicRect() noexcept: SDLRectType{0, 0, 0, 0} {}
 
-        BasicRect(NumType x, NumType y, NumType w, NumType h) noexcept: SDLRectType{x, y, w, h} { null = false; }
+        BasicRect(NumType x, NumType y, NumType w, NumType h) noexcept: SDLRectType{x, y, w, h} {}
 
-        explicit BasicRect(PointRef size) noexcept: SDLRectType{0, 0, size.x, size.y} { null = false; }
+        explicit BasicRect(PointRef size) noexcept: SDLRectType{0, 0, size.x, size.y} {}
 
-        BasicRect(PointRef begin, PointRef end) noexcept: SDLRectType{begin.x, begin.y,
-                                                                      end.x - begin.x,
-                                                                      end.y - begin.y} { null = false; }
-
-        explicit BasicRect(SDLSurfacePtr surface) noexcept: SDLRectType{0, 0, surface->w, surface->h} { null = false; }
+        explicit BasicRect(SDLSurfacePtr surface) noexcept: SDLRectType{0, 0, surface->w, surface->h} {}
 
         BasicRect(SDLSurfacePtr surface, PointRef shift) noexcept: SDLRectType{shift.x, shift.y, surface->w,
-                                                                               surface->h} { null = false; }
+                                                                               surface->h} {}
 
-        ~BasicRect() = default;
+        ~BasicRect() noexcept = default;
 
-        RectType &operator=(RectRef rect) {
+        static RectType from_to(PointRef from, PointRef to) noexcept {
+            return {from.x, from.y, to.x - from.x, to.y - from.y};
+        }
+
+        static RectType pos_size(PointRef pos, PointRef size) noexcept {
+            return {pos.x, pos.y, size.x, size.y};
+        }
+
+        RectType &operator=(RectRef rect) noexcept {
             this->x = rect.x;
             this->y = rect.y;
             this->w = rect.w;
             this->h = rect.h;
-            null = rect.null;
             return *this;
         }
 
-        [[nodiscard]] PointType center() const {
+        [[nodiscard]] PointType center() const noexcept {
             return {this->x + this->w / 2, this->y + this->h / 2};
         }
 
-        [[nodiscard]] constexpr PointType lu() const {
+        [[nodiscard]] constexpr PointType lu() const noexcept {
             return {this->x, this->y};
         }
 
-        [[nodiscard]] constexpr PointType ld() const {
+        [[nodiscard]] constexpr PointType ld() const noexcept {
             return {this->x, this->y + this->h};
         }
 
-        [[nodiscard]] constexpr PointType ru() const {
+        [[nodiscard]] constexpr PointType ru() const noexcept {
             return {this->x + this->w, this->y};
         }
 
-        [[nodiscard]] constexpr PointType rd() const {
+        [[nodiscard]] constexpr PointType rd() const noexcept {
             return {this->x + this->w, this->y + this->h};
         }
 
-        [[nodiscard]] RectType expand_copy(long double m, PointRef pos) const {
-            return {static_cast<int>((this->x - pos.x) * m + pos.x), static_cast<int>((this->y - pos.y) * m + pos.y),
-                    static_cast<int>(this->w * m), static_cast<int>(this->h * m)};
+        [[nodiscard]] RectType expand_copy(double m, PointRef pos) const noexcept {
+            return {static_cast<NumType>((this->x - pos.x) * m + pos.x),
+                    static_cast<NumType>((this->y - pos.y) * m + pos.y),
+                    static_cast<NumType>(this->w * m), static_cast<NumType>(this->h * m)};
         }
 
-        RectType &expand(long double m, PointRef pos) {
-            this->x = static_cast<int>((this->x - pos.x) * m + pos.x);
-            this->y = static_cast<int>((this->y - pos.y) * m + pos.y);
-            this->w = static_cast<int>(this->w * m);
-            this->h = static_cast<int>(this->h * m);
+        RectType &expand(double m, PointRef pos) noexcept {
+            this->x = static_cast<NumType>((this->x - pos.x) * m + pos.x);
+            this->y = static_cast<NumType>((this->y - pos.y) * m + pos.y);
+            this->w = static_cast<NumType>(this->w * m);
+            this->h = static_cast<NumType>(this->h * m);
             return *this;
         }
 
-        [[nodiscard]] constexpr PointType inters_size(RectRef rect) const {
+        // If this is positive, then there is intersection.
+        [[nodiscard]] constexpr PointType inters_size(RectRef rect) const noexcept {
             return {this->w + rect.w - abs(this->x - rect.x), this->h + rect.h - abs(this->y - rect.y)};
         }
 
-        [[nodiscard]] RectType inters_rect(RectRef rect) const {
+        // If this is positive, then there is intersection.
+        [[nodiscard]] RectType inters_rect(RectRef rect) const noexcept {
             PointType this_rd = rd(), rect_rd = rect.rd();
-            return {{std::max(this->x, rect.x),      std::max(this->y, rect.y)},
-                    {std::min(this_rd.x, rect_rd.x), std::min(this_rd.y, rect_rd.y)}};
+            return RectType::from_to({std::max(this->x, rect.x), std::max(this->y, rect.y)},
+                                     {std::min(this_rd.x, rect_rd.x), std::min(this_rd.y, rect_rd.y)});
+        }
+
+        [[nodiscard]] BasicRect<SDL_Rect, SDL_Point> to_IRect() const noexcept {
+            return {static_cast<int>(this->x), static_cast<int>(this->y),
+                    static_cast<int>(this->w), static_cast<int>(this->h)};
         }
 
         IF_RECT_TYPE(SDL_Rect, bool)
-        empty() const {
+        empty() const noexcept {
             return SDL_RectEmpty(this);
         }
 
         IF_RECT_TYPE(SDL_FRect, bool)
-        empty() const {
+        empty() const noexcept {
             return SDL_FRectEmpty(this);
         }
 
         NOT_ANY_RECT_TYPE(bool)
-        empty() const {
+        empty() const noexcept {
             return this->w == 0 || this->h == 0;
         }
 
         IF_RECT_TYPE(SDL_Rect, bool)
-        contains(const Point &point) const {
+        contains(const Point &point) const noexcept {
             return SDL_PointInRect(&point, this);
         }
 
         IF_RECT_TYPE(SDL_FRect, bool)
-        contains(const FPoint &point) const {
+        contains(const FPoint &point) const noexcept {
             return SDL_PointInFRect(&point, this);
         }
 
         NOT_ANY_RECT_TYPE(bool)
-        contains(const SDLPointType &point) const {
+        contains(const SDLPointType &point) const noexcept {
             return this->x <= point.x && point.x <= this->x + this->w &&
                    this->y <= point.y && point.y <= this->y + this->h;
         }
 
 
-        [[nodiscard]] constexpr bool positive() const {
+        [[nodiscard]] constexpr bool positive() const noexcept {
             return this->w > 0 && this->h > 0;
         }
 
-        [[nodiscard]] constexpr bool negative() const {
+        [[nodiscard]] constexpr bool negative() const noexcept {
             return this->w < 0 && this->h < 0;
         }
 
-        void to_empty() {
+        void to_empty() noexcept {
             this->w = this->h = 0;
         }
 
-        [[nodiscard]] constexpr bool eq_positive() const {
+        [[nodiscard]] constexpr bool eq_positive() const noexcept {
             return this->w >= 0 && this->h >= 0;
         }
 
-        [[nodiscard]] constexpr bool eq_negative() const {
+        [[nodiscard]] constexpr bool eq_negative() const noexcept {
             return this->w <= 0 && this->h <= 0;
         }
 
-        void to_positive() {
+        void to_positive() noexcept {
             if (this->w < 0) {
                 this->x += this->w;
                 this->w = -this->w;
@@ -364,46 +386,46 @@ namespace SDLClass {
             }
         }
 
-        void invert() {
+        void invert() noexcept {
             this->x += this->w;
             this->w = -this->w;
             this->y += this->h;
             this->h = -this->h;
         }
 
-        RectType operator+(PointRef point) const {
+        RectType operator+(PointRef point) const noexcept {
             return {this->x + point.x, this->y + point.y, this->w, this->h};
         }
 
-        RectType operator-(PointRef point) const {
+        RectType operator-(PointRef point) const noexcept {
             return {this->x - point.x, this->y - point.y, this->w, this->h};
         }
 
-        RectType operator*(long double m) const {
+        RectType operator*(long double m) const noexcept {
             return expand_copy(m, center());
         }
 
-        RectType operator/(long double m) const {
+        RectType operator/(long double m) const noexcept {
             return expand_copy(1 / m, center());
         }
 
-        RectType &operator+=(PointRef point) {
+        RectType &operator+=(PointRef point) noexcept {
             this->x += point.x;
             this->y += point.y;
             return *this;
         }
 
-        RectType &operator-=(PointRef point) {
+        RectType &operator-=(PointRef point) noexcept {
             this->x -= point.x;
             this->y -= point.y;
             return *this;
         }
 
-        RectType &operator*=(long double m) {
+        RectType &operator*=(long double m) noexcept {
             return expand(m, center());
         }
 
-        RectType &operator/=(long double m) {
+        RectType &operator/=(long double m) noexcept {
             return expand(1 / m, center());
         }
 
@@ -411,12 +433,8 @@ namespace SDLClass {
             return SDL_RectEquals(this, rect);
         }
 
-        constexpr operator const SDLRectType *() const noexcept { // NOLINT(google-explicit-constructor)
-            return null ? nullptr : this;
-        }
-
-        constexpr operator SDLRectType *() noexcept { // NOLINT(google-explicit-constructor)
-            return null ? nullptr : this;
+        constexpr bool operator!=(RectRef rect) const noexcept {
+            return !SDL_RectEquals(this, rect);
         }
 
         constexpr operator SDL_Rect() const noexcept { // NOLINT(google-explicit-constructor)
@@ -430,12 +448,20 @@ namespace SDLClass {
         }
 
         template<HasXYWH SDLRectType_, HasXY SDLPointType_>
-        constexpr operator BasicRect<SDLRectType_, SDLPointType_>()
-        const noexcept { // NOLINT(google-explicit-constructor)
+        constexpr operator BasicRect<SDLRectType_, SDLPointType_>() // NOLINT(google-explicit-constructor)
+        const noexcept {
             using NumType_ = typeof
             BasicRect<SDLRectType_, SDLPointType_>::x;
-            return (static_cast<NumType>(this->x), static_cast<NumType>(this->y),
-                    static_cast<NumType>(this->w), static_cast<NumType>(this->h));
+            return {static_cast<NumType_>(this->x), static_cast<NumType_>(this->y),
+                    static_cast<NumType_>(this->w), static_cast<NumType_>(this->h)};
+        }
+
+        constexpr operator const SDLRectType *() const noexcept { // NOLINT(google-explicit-constructor)
+            return this;
+        }
+
+        constexpr operator SDLRectType *() noexcept { // NOLINT(google-explicit-constructor)
+            return this;
         }
     };
 
@@ -449,155 +475,193 @@ namespace SDLClass {
     using FRect = BasicRect<SDL_FRect, SDL_FPoint>;
 
     template<typename NumType>
-    struct ArithRect : BasicRect<FakeRectType<NumType>, FakePointType<NumType>> {
-        static_assert(std::is_arithmetic<NumType>::value, "ArithRect NumType must an arithmetic type");
+    using ArithRect = BasicRect<FakeRectType<NumType>, FakePointType<NumType>>;
+
+#if __cplusplus >= 202002L
+    template<typename T>
+    concept CanBePointOrRect_ = std::is_assignable<Point, T>::value || std::is_assignable<Rect, T>::value;
+#define CanBePointOrRect CanBePointOrRect_
+#define IsPointOrRect(T) CanBePointOrRect_<T>
+#else
+#define CanBePointOrRect typename
+#define IsPointOrRect(T) true
+#endif
+
+#define NO_COPY(type) type(const type &) = delete;\
+type &operator=(const type &) = delete;           \
+type &operator=(type &&) = delete;
+
+    class Renderer {
+    protected:
+        SDLRendererPtr renderer;
+    public:
+        Renderer(WindowPtr window, int index, Uint32 flags) : renderer(SDL_CreateRenderer(window, index, flags)) {}
+
+        virtual ~Renderer() {
+            destroy();
+        }
+
+        NO_COPY(Renderer)
+
+        void destroy() noexcept {
+            SDL_DestroyRenderer(renderer);
+            renderer = nullptr;
+        }
+
+        [[nodiscard]] constexpr SDLRendererPtr ptr() const noexcept {
+            return renderer;
+        }
+
+        void copy(SDLSurfacePtr surface, const SDL_Rect *srcrect, const SDL_Rect *dstrect) {
+            auto texture = SDL_CreateTextureFromSurface(renderer, surface);
+            copy(texture, srcrect, dstrect);
+        }
+
+        void copy(SDLTexturePtr texture, const SDL_Rect *srcrect = nullptr, const SDL_Rect *dstrect = nullptr) {
+            SDL_RenderCopy(renderer, texture, srcrect, dstrect);
+        }
+
+        int set_color(const SDL_Color &color) const {
+            return SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+        }
+
+        int clear() const {
+            return SDL_RenderClear(renderer);
+        }
+
+        int set_logical_size(Point::PointRef size) const {
+            return SDL_RenderSetLogicalSize(renderer, size.x, size.y);
+        }
+
+        void present() const {
+            SDL_RenderPresent(renderer);
+        }
+
+        constexpr operator SDLRendererPtr() const noexcept { // NOLINT(google-explicit-constructor)
+            return ptr();
+        }
     };
 
-    class Texture {
+    class TextureBase {
     protected:
         SDLTexturePtr texture;
-        bool independent;
     public:
-        Rect srcrect;
 
-        Texture() noexcept: texture(nullptr), independent(false) {}
+        TextureBase() noexcept: texture(nullptr) {}
 
-        Texture(const Texture &texture) noexcept: texture(texture.texture), srcrect(texture.srcrect),
-                                                  independent(false) {}
+        TextureBase(SDLTexturePtr texture) noexcept:// NOLINT(google-explicit-constructor)
+                texture(texture) {}
 
-        Texture(SDLTexturePtr texture, bool independent = true) noexcept:// NOLINT(google-explicit-constructor)
-                texture(texture), independent(independent) {}
+        virtual ~TextureBase() = default;
 
-        Texture(RendererPtr renderer, SDLSurfacePtr surface) noexcept: srcrect(surface), independent(
-                true) {
-            texture = SDL_CreateTextureFromSurface(renderer, surface);
-        } // NOLINT(google-explicit-constructor
+        NO_COPY(TextureBase)
 
-        Texture &operator=(const Texture &a_texture) noexcept {
-            texture = a_texture.texture;
-            independent = false;
-            return *this;
+        void destroy() noexcept {
+            SDL_DestroyTexture(texture);
+            texture = nullptr;
         }
 
-        Texture &operator=(Texture &&a_texture) noexcept {
-            texture = a_texture.texture;
-            independent = a_texture.independent;
-            return *this;
+        [[nodiscard]] constexpr SDLTexturePtr ptr() const noexcept {
+            return texture;
         }
 
-        ~Texture() {
-            if (independent) SDL_DestroyTexture(texture);
+        void copy_to(Renderer &renderer, const SDL_Rect *dstrect = nullptr) {
+            renderer.copy(texture, nullptr, dstrect);
         }
 
-        void copy_to(RendererPtr renderer, Point::PointRef dst) {
-            SDL_RenderCopy(renderer, texture, srcrect, srcrect + dst);
-        }
-
-        void copy_to(RendererPtr renderer, Rect a_dstrect) {
-            SDL_RenderCopy(renderer, texture, srcrect, a_dstrect);
-        }
-
-        void set_blend(SDL_BlendMode blendMode) {
-            SDL_SetTextureBlendMode(texture, blendMode);
+        void copy_to(Renderer &renderer, const SDL_Rect *srcrect, const SDL_Rect *dstrect) {
+            renderer.copy(texture, srcrect, dstrect);
         }
 
         void set_alpha(Uint8 alpha) {
             SDL_SetTextureAlphaMod(texture, alpha);
         }
 
-        operator SDLTexturePtr() { // NOLINT(google-explicit-constructor)
-            return texture;
+        void set_blend(SDL_BlendMode blendMode) {
+            SDL_SetTextureBlendMode(texture, blendMode);
+        }
+
+        constexpr operator SDLTexturePtr() const noexcept { // NOLINT(google-explicit-constructor)
+            return ptr();
         }
     };
 
-    class Surface {
+    class Texture : public TextureBase {
     public:
+        Texture() : TextureBase() {}
+
+        Texture(SDLRendererPtr renderer, SDLSurfacePtr surface) noexcept {
+            texture = SDL_CreateTextureFromSurface(renderer, surface);
+        } // NOLINT(google-explicit-constructor
+
+        ~Texture() override {
+            destroy();
+        }
+    };
+
+    class SurfaceBase {
+    protected:
         SDLSurfacePtr surface;
-        bool independent;
+    public:
 
-        Surface() noexcept: surface(nullptr), independent(false) {}
+        SurfaceBase() noexcept: surface(nullptr) {}
 
-        Surface(Surface &surface) {
-            this->surface = surface.surface;
-            independent = false;
+        SurfaceBase(SDLSurfacePtr surface) noexcept:// NOLINT(google-explicit-constructor)
+                surface(surface) {}
+
+        virtual ~SurfaceBase() = default;
+
+        NO_COPY(SurfaceBase)
+
+        void free() noexcept {
+            SDL_FreeSurface(surface);
+            surface = nullptr;
         }
 
-        Surface(Surface &surface, const SDL_PixelFormat *fmt) noexcept: surface(
-                SDL_ConvertSurface(surface, fmt, 0)), independent(true) {}
-
-        Surface(SDLSurfacePtr surface, bool independent = true) noexcept:// NOLINT(google-explicit-constructor)
-                surface(surface), independent(independent) {}
-
-        explicit Surface(const std::string &file) noexcept: surface(IMG_Load(file.c_str())), independent(true) {}
-
-        Surface(int width, int height, int depth = 32, Uint32 Rmask = 0, Uint32 Gmask = 0, Uint32 Bmask = 0,
-                Uint32 Amask = 0) noexcept: surface(
-                SDL_CreateRGBSurface(0, width, height, depth, Rmask, Gmask, Bmask, Amask)), independent(true) {}
-
-        explicit Surface(const Point &size, int depth = 32, Uint32 Rmask = 0, Uint32 Gmask = 0, Uint32 Bmask = 0,
-                         Uint32 Amask = 0) noexcept: surface(
-                SDL_CreateRGBSurface(0, size.x, size.y, depth, Rmask, Gmask, Bmask, Amask)), independent(true) {}
-
-
-        ~Surface() {
-            free();
-        }
-
-        Surface &operator=(const Surface &a_surface) noexcept {
-            free();
-            surface = a_surface.surface;
-            independent = false;
-            return *this;
-        }
-
-        Surface &operator=(Surface &&a_surface) noexcept {
-            free();
-            surface = a_surface.surface;
-            independent = a_surface.independent;
-            a_surface.independent = false;
-            return *this;
-        }
-
-        [[nodiscard]] constexpr bool is_null() const noexcept {
-            return surface == nullptr;
+        [[nodiscard]] constexpr SDLSurfacePtr ptr() const noexcept {
+            return surface;
         }
 
         [[nodiscard]] Point size() const noexcept {
             return Point{surface->w, surface->h};
         }
 
-        // This function is safe to call with nullptr and will eventually set surface to nullptr
-        void free() noexcept {
-            if (independent) {
-                SDL_FreeSurface(surface);
-                surface = nullptr;
-                independent = false;
-            }
+        [[nodiscard]] int w() const noexcept {
+            return surface->w;
         }
 
-        void copy_to(RendererPtr renderer, Point::PointRef dst) {
+        [[nodiscard]] int h() const noexcept {
+            return surface->h;
+        }
+
+        void copy_to(Renderer &renderer, Point::PointRef dst) const {
             Texture texture{renderer, surface};
-            texture.copy_to(renderer, dst);
+            texture.copy_to(renderer, Rect{surface, dst});
         }
 
-        void copy_to(RendererPtr renderer, Rect a_dstrect) {
+        void copy_by_center_to(Renderer &renderer, Point::PointRef center) const {
+            copy_to(renderer, {center.x - surface->w / 2, center.y - surface->h / 2});
+        }
+
+        void copy_to(Renderer &renderer, const SDL_Rect *dstrect) const {
             Texture texture{renderer, surface};
-            texture.copy_to(renderer, a_dstrect);
+            texture.copy_to(renderer, dstrect);
         }
 
-        void blit(SDLSurfacePtr a_surface, const Point &dst) {
-            SDL_BlitSurface(a_surface, nullptr, surface, Rect(a_surface) + dst);
+        void blit(SDLSurfacePtr a_surface, const Point &dst) const {
+            Rect dstrect = Rect(a_surface) + dst;
+            SDL_BlitSurface(a_surface, nullptr, surface, &dstrect);
         }
 
-        void blit(SDLSurfacePtr a_surface, SDL_Rect *dstrect = nullptr) {
+        void blit(SDLSurfacePtr a_surface, SDL_Rect *dstrect = nullptr) const {
             SDL_BlitSurface(a_surface, nullptr, surface, dstrect);
         }
 
-        void blit(SDLSurfacePtr a_surface, const SDL_Rect *srcrect, SDL_Rect *dstrect) {
+        void blit(SDLSurfacePtr a_surface, const SDL_Rect *srcrect, SDL_Rect *dstrect) const {
             SDL_BlitSurface(a_surface, srcrect, surface, dstrect);
         }
 
-        void lower_blit(SDLSurfacePtr a_surface, SDL_Rect *srcrect, SDL_Rect *dstrect) {
+        void lower_blit(SDLSurfacePtr a_surface, SDL_Rect *srcrect, SDL_Rect *dstrect) const {
             SDL_LowerBlit(a_surface, srcrect, surface, dstrect);
         }
 
@@ -605,54 +669,76 @@ namespace SDLClass {
             SDL_SetColorKey(surface, flag, get_color(color));
         }
 
-        void set_alpha(Uint8 alpha) {
+        void set_alpha(Uint8 alpha) const {
             SDL_SetSurfaceAlphaMod(surface, alpha);
         }
 
-        void set_blend(SDL_BlendMode blendMode) {
+        void set_blend(SDL_BlendMode blendMode) const {
             SDL_SetSurfaceBlendMode(surface, blendMode);
         }
 
-        void lock() {
+        void lock() const {
             SDL_LockSurface(surface);
         }
 
-        void unlock() {
+        void unlock() const {
             SDL_UnlockSurface(surface);
         }
 
-        SDLSurfacePtr merge_x(Surface &a_surface) {
-            Surface result = {SDL_CreateRGBSurface(0, surface->w + a_surface.surface->w,
-                                                   std::max(surface->h, a_surface.surface->h), 32,
-                                                   surface->format->Rmask,
-                                                   surface->format->Gmask, surface->format->Bmask,
-                                                   surface->format->Amask), false};
+        SDLSurfacePtr merge_x(SurfaceBase &a_surface) const {
+            SurfaceBase result = {SDL_CreateRGBSurface(0, surface->w + a_surface.surface->w,
+                                                       std::max(surface->h, a_surface.surface->h), 32,
+                                                       surface->format->Rmask,
+                                                       surface->format->Gmask, surface->format->Bmask,
+                                                       surface->format->Amask)};
             result.blit(surface, {0, 0});
             result.blit(a_surface, {surface->w, 0});
             return result.surface;
         }
 
-        SDLSurfacePtr merge_y(Surface &a_surface) {
-            Surface result = {SDL_CreateRGBSurface(0, std::max(surface->w, a_surface.surface->w),
-                                                   surface->h + a_surface.surface->h, 32,
-                                                   surface->format->Rmask,
-                                                   surface->format->Gmask, surface->format->Bmask,
-                                                   surface->format->Amask), false};
+        SDLSurfacePtr merge_y(SurfaceBase &a_surface) const {
+            SurfaceBase result = {SDL_CreateRGBSurface(0, std::max(surface->w, a_surface.surface->w),
+                                                       surface->h + a_surface.surface->h, 32,
+                                                       surface->format->Rmask,
+                                                       surface->format->Gmask, surface->format->Bmask,
+                                                       surface->format->Amask)};
             result.blit(surface, {0, 0});
             result.blit(a_surface, {0, surface->h});
             return result.surface;
         }
 
-        Uint32 get_color(const SDL_Color &color) {
+        [[nodiscard]] Uint32 get_color(const SDL_Color &color) const {
             return SDL_MapRGB(surface->format, color.r, color.g, color.b);
         }
 
-        void fill_rect(const SDL_Color &color, const SDL_Rect *rect = nullptr) {
+        void fill_rect(const SDL_Color &color, const SDL_Rect *rect = nullptr) const {
             SDL_FillRect(surface, rect, get_color(color));
         }
 
-        operator SDLSurfacePtr() { // NOLINT(google-explicit-constructor)
-            return surface;
+        operator SDLSurfacePtr() const { // NOLINT(google-explicit-constructor)
+            return ptr();
+        }
+    };
+
+    class Surface : public SurfaceBase {
+    public:
+        Surface() : SurfaceBase() {}
+
+        explicit Surface(const std::string &file) noexcept: SurfaceBase(IMG_Load(file.c_str())) {}
+
+        // The surface IS managed and will be freed on delete.
+        explicit Surface(SDLSurfacePtr surface) noexcept: SurfaceBase(surface) {}
+
+        Surface(int width, int height, int depth = 32, Uint32 Rmask = 0, Uint32 Gmask = 0, Uint32 Bmask = 0,
+                Uint32 Amask = 0) noexcept:
+                SurfaceBase(SDL_CreateRGBSurface(0, width, height, depth, Rmask, Gmask, Bmask, Amask)) {}
+
+        explicit Surface(const Point &size, int depth = 32, Uint32 Rmask = 0, Uint32 Gmask = 0, Uint32 Bmask = 0,
+                         Uint32 Amask = 0) noexcept:
+                SurfaceBase(SDL_CreateRGBSurface(0, size.x, size.y, depth, Rmask, Gmask, Bmask, Amask)) {}
+
+        ~Surface() override {
+            free();
         }
     };
 
@@ -756,6 +842,17 @@ namespace SDLClass {
         }
     };
 
+    inline Rect get_display_bounds(int displayIndex = 0) {
+        Rect result;
+        SDL_GetDisplayBounds(displayIndex, &result);
+        return result;
+    }
+
+    inline Rect get_display_usable_bounds(int displayIndex = 0) {
+        Rect result;
+        SDL_GetDisplayUsableBounds(displayIndex, &result);
+        return result;
+    }
 }
 
 #undef IF_RECT_TYPE

@@ -165,7 +165,7 @@ NS_BEGIN
         WIDGET_PRESENT override {
             Point real = this->pos + rel;
             back->copy_to(renderer, this->pos + rel);
-            if (!(text == nullptr || text->is_null()))
+            if (text != nullptr && text->ptr())
                 text->copy_to(renderer, this->pos + text_rel + rel);
         }
 

@@ -5,8 +5,9 @@
 #ifndef SDLCLASS_SDLEXT_H
 #define SDLCLASS_SDLEXT_H
 
-#define SDL_EXT_VERSION "v0.3.3"
+#define SDL_EXT_VERSION "v0.3.3 "
 
+#include "ExtMath.hpp"
 #include "ExtColor.hpp"
 #include "ExtKeyMgr.hpp"
 #include "ExtWidget.hpp"
@@ -23,6 +24,7 @@
 #endif // UNDEF_MACROS
 
 #define UNDEF_MACROS true
+
 #include "ExtBase.h"
 
 #endif //SDLCLASS_SDLEXT_H

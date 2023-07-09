@@ -51,9 +51,8 @@ NS_BEGIN
             surface->fill_rect(scheme.front_body,
                                Rect{outline_size, outline_size,
                                     size.x - outline_size * 2, size.y - outline_size * 2});
-            if (!img.is_null()) {
+            if (img.ptr())
                 surface->blit(img, img_rel);
-            }
         }
 
         void draw_back() {
@@ -63,9 +62,8 @@ NS_BEGIN
             surface->fill_rect(scheme.back_body,
                                Rect{outline_size, outline_size,
                                     size.x - outline_size * 2, size.y - outline_size * 2});
-            if (!img.is_null()) {
+            if (img.ptr())
                 surface->blit(img, img_rel);
-            }
         }
 
     public:

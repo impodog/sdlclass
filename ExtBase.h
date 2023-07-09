@@ -7,11 +7,13 @@
 
 #include "SDLClass.h"
 #include <limits>
+#include <cmath>
 #include <iostream>
 #include <vector>
 #include <map>
 #include <unordered_map>
 #include <filesystem>
+#include "SDL2_rotozoom.h"
 
 #define NS_BEGIN namespace SDLExt {
 #define NS_END }
@@ -35,106 +37,18 @@ using PointRef = WidgetParent::PointRef;                   \
 using ConstSchemeRef = WidgetParent::ConstSchemeRef;
 #define WIDGET_TYPE(type)[[nodiscard]] constexpr WidgetResult::WidgetType get_type() const noexcept override { return type; }
 #define WIDGET_PROCESS void process(const Point &rel, const MgrType &mgr, WidgetResult &result)
-#define WIDGET_PRESENT void present(RendererPtr renderer, const Point &rel)
+#define WIDGET_PRESENT void present(Renderer & renderer, const Point &rel)
 #define WIDGET_DELETES(type) type(const type &) = delete;\
 type &operator=(type &&) = delete;                       \
 type &operator=(const type &) = delete;
 
-NS_BEGIN
-    using namespace SDLClass;
-
-    template<class NumType>
-    constexpr typename std::enable_if<std::is_floating_point<NumType>::value, bool>::type
-    operator==(NumType x, NumType y) {
-        return x - y <= epsilon_of(NumType);
-    }
-
-    template<class NumType>
-    constexpr typename std::enable_if<std::is_signed<NumType>::value, NumType>::type
-    sign(NumType x) noexcept {
-        return x > 0 ? 1 : x < 0 ? -1 : 0;
-    }
-
-    template<class NumType>
-    constexpr typename std::enable_if<std::is_unsigned<NumType>::value, NumType>::type
-    sign(NumType x) noexcept {
-        return x != 0 ? 1 : 0;
-    }
-
-    template<class NumType>
-    constexpr typename std::enable_if<std::is_signed<NumType>::value, NumType>::type
-    nsign(NumType x) noexcept {
-        return x > 0 ? -1 : x < 0 ? 1 : 0;
-    }
-
-    template<class NumType>
-    constexpr typename std::enable_if<std::is_unsigned<NumType>::value, typename std::make_signed<NumType>::type>::type
-    nsign(NumType x) noexcept {
-        return x != 0 ? -1 : 0;
-    }
-
-    template<class NumType>
-    constexpr typename std::enable_if<std::is_signed<NumType>::value, NumType>::type
-    sign(NumType x, NumType y) noexcept {
-        return x > 0 ? sign(y) : x < 0 ? nsign(y) : 0;
-    }
-
-    template<class NumType>
-    constexpr typename std::enable_if<std::is_unsigned<NumType>::value, NumType>::type
-    sign(NumType x, NumType y) noexcept {
-        return x != 0 && y != 0 ? 1 : 0;
-    }
-
-    template<class NumType>
-    constexpr typename std::enable_if<std::is_signed<NumType>::value, NumType>::type
-    nsign(NumType x, NumType y) noexcept {
-        return x > 0 ? nsign(y) : x < 0 ? sign(y) : 0;
-    }
-
-    template<class NumType>
-    constexpr typename std::enable_if<std::is_unsigned<NumType>::value, typename std::make_signed<NumType>::type>::type
-    nsign(NumType x, NumType y) noexcept {
-        return x != 0 && y != 0 ? -1 : 0;
-    }
-
-    template<class NumType>
-    struct Ok {
-        NumType value;
-        bool ok;
-    };
-
-    template<class NumType>
-    typename std::enable_if<std::is_unsigned<NumType>::value, Ok<NumType>>::type
-    add_ok(NumType a, NumType b) noexcept {
-        NumType sum = a + b;
-        return {sum, (sum > a) && (sum > b)};
-    }
-
-    template<class NumType>
-    typename std::enable_if<std::is_signed<NumType>::value, Ok<NumType>>::type
-    add_ok(NumType a, NumType b) noexcept {
-        int sign_a = sign(a), sign_b = sign(b);
-        NumType sum = a + b;
-        return {sum, (sign_a != sign_b) || (sign_a == sum)};
-    }
-
-    template<class NumType>
-    typename std::enable_if<std::is_unsigned<NumType>::value, Ok<NumType>>::type
-    sub_ok(NumType a, NumType b) noexcept {
-        return {NumType(a - b), a > b};
-    }
-
-    template<class NumType>
-    typename std::enable_if<std::is_signed<NumType>::value, Ok<NumType>>::type
-    sub_ok(NumType a, NumType b) noexcept {
-        return add_ok(a, -b);
-    }
-
-NS_END
-
 #ifndef UNDEF_MACROS
 #define UNDEF_MACROS false
 #endif // UNDEF_MACROS
+
+NS_BEGIN
+    using namespace SDLClass;
+NS_END
 
 #endif //SDLCLASS_EXTMACROS_H
 

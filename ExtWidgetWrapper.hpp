@@ -13,7 +13,7 @@ NS_BEGIN
 #if __cplusplus >= 202002L
     template<typename WrapType>
     concept SupportsCopyTo = requires {
-        WrapType().copy_to(RendererPtr(), Point());
+        WrapType().copy_to(Renderer(nullptr, 0, 0), Point());
     };
 
     WIDGET_TEMPLATE(, SupportsCopyTo WrapType)

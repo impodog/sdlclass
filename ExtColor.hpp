@@ -6,6 +6,7 @@
 #define SDLCLASS_EXTCOLOR_HPP
 
 #include "ExtBase.h"
+#include "ExtMath.hpp"
 
 #define COLOR_OP(op, x, val, max_min) {              \
     auto ok = op(x,val);                             \

@@ -174,7 +174,7 @@ NS_BEGIN
                 position.at(key).to0();
         }
 
-        void motion(const SDL_MouseButtonEvent &button) {
+        void motion(const SDL_MouseMotionEvent &button) {
             auto &prev = position.at(pos);
             position.at(move) = {button.x - prev.x, button.y - prev.y};
             prev = {button.x, button.y};
@@ -231,6 +231,10 @@ NS_BEGIN
 
         Point &at_unchecked(ButtonType button) {
             return position[button];
+        }
+
+        const Point &where() const {
+            return position.at(pos);
         }
 
         Point &operator[](ButtonType button) {
